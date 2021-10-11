@@ -3,13 +3,97 @@ install.packages("WGEN",repos = NULL,type = "source")
 library(WGEN)
 
 ##Get flow, rain and evap data
-RainDat <- read.csv("69049_SILO_Rain.csv")
-EvapDat <- read.csv("69049_SILO_Rain.csv")
+RainDat <- read.csv("69041_SILO_Rain.csv")
+EvapDat <- read.csv("69041_SILO_Evap.csv")
 FlowDat <- read.csv("215004_HRS_Flow.csv")
 
 ##Fit the WGEN model and Generate some rainfall replicates
-
-library(WGEN)
 RainDatFormat <- format_TimeSeries(RainDat)
 SimRainList <- getSimRain(RainDatFormat, rep = 10, mod = "expo")
 
+##---------------------------------------------------------------------#
+
+
+library(airGR)
+DATA <- data.frame(matrix(NA,nrow = length(RainDat[,1]), ncol = 4))
+colnames(DATA) <- c("Date_Time","P","Q","E")
+DATA[,1] <- RainDat[,1]; DATA[,2] <- RainDat[,2]; DATA[,3] <- FlowDat[,2]; DATA[,4] <- EvapDat[,2]
+
+DATA$Date_Time <- strptime(as.character(DATA$Date_Time), "%d/%m/%Y")
+DATA$Date_Time <- format(DATA$Date_Time,"%Y-%m-%d")
+#GR4J model run preparation
+Dates <- as.POSIXlt(DATA$Date_Time,tz="",format="%Y-%m-%d")#Format date string
+
+#InputsModel object
+InputsModel <- CreateInputsModel(FUN_MOD = RunModel_GR4J, DatesR = Dates,
+                                 Precip = DATA$P, PotEvap = DATA$E)
+
+#RunOptions object
+##1.Index Run
+Ind_Run <- seq(which(format(Dates, format = "%Y-%m-%d") == "2000-01-01"),
+               which(format(Dates, format = "%Y-%m-%d") == "2019-02-28"))
+
+##2.Run Option
+RunOptions <- CreateRunOptions(FUN_MOD = RunModel_GR4J,
+                               InputsModel = InputsModel, IndPeriod_Run = Ind_Run,
+                               IniStates = NULL, IniResLevels = NULL, IndPeriod_WarmUp = NULL)
+
+#InputsCrit object
+InputsCrit <- CreateInputsCrit(FUN_CRIT = ErrorCrit_NSE, InputsModel = InputsModel, 
+                               RunOptions = RunOptions, VarObs = "Q", Obs = DATA$Q[Ind_Run])
+
+#CalibOptions object
+CalibOptions <- CreateCalibOptions(FUN_MOD = RunModel_GR4J, FUN_CALIB = Calibration_Michel)
+
+#CALIBRATION
+OutputsCalib <- Calibration_Michel(InputsModel = InputsModel, RunOptions = RunOptions,
+                                   InputsCrit = InputsCrit, CalibOptions = CalibOptions,
+                                   FUN_MOD = RunModel_GR4J)
+#Get GR4J parameter
+Param <- OutputsCalib$ParamFinalR
+
+#Run GR4J
+OutputsModel <- RunModel_GR4J(InputsModel = InputsModel, RunOptions = RunOptions, Param = Param)
+
+#Plot
+plot(OutputsModel, Qobs = DATA$Q[Ind_Run])
+
+#------------------------------Global Optimization------------------------------------------------#
+lowerGR4J <- rep(-9.99, times = 4)
+upperGR4J <- rep(+9.99, times = 4)
+
+#Differential Evolution
+optDE <- DEoptim::DEoptim(fn = OptimGR4J,
+                          lower = lowerGR4J, upper = upperGR4J,
+                          control = DEoptim::DEoptim.control(NP = 40, trace = 10))
+#Particle Swarm
+optPSO <- hydroPSO::hydroPSO(fn = OptimGR4J,
+                             lower = lowerGR4J, upper = upperGR4J,
+                             control = list(write2disk = FALSE, verbose = FALSE))
+
+#-------------------------------Multi-objective optimization---------------------------------------#
+
+InputsCrit_inv <- InputsCrit
+InputsCrit_inv$transfo <- "inv"
+algo <- "caRamel"
+optMO <- caRamel::caRamel(nobj = 2,
+                          nvar = 4,
+                          minmax = rep(TRUE, 2),
+                          bounds = matrix(c(lowerGR4J, upperGR4J), ncol = 2),
+                          func = MOptimGR4J,
+                          popsize = 100,
+                          archsize = 100,
+                          maxrun = 15000,
+                          prec = rep(1.e-3, 2),
+                          carallel = FALSE,
+                          graph = FALSE)
+param_optMO <- apply(optMO$parameters, MARGIN = 1, FUN = function(x) {
+  airGR::TransfoParam_GR4J(x, Direction = "TR")
+})
+RunOptions$Outputs_Sim <- "Qsim"
+run_optMO <- apply(optMO$parameters, MARGIN = 1, FUN = function(x) {
+  airGR::RunModel_GR4J(InputsModel = InputsModel,
+                       RunOptions = RunOptions,
+                       Param = x)
+}$Qsim)
+run_optMO <- data.frame(run_optMO)

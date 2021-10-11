@@ -1,4 +1,5 @@
-library(hydromad)library(airGR)
+library(hydromad)
+library(airGR)
 
 FlowData <- read.csv("streamflow.csv")
 RainData <- read.csv("Rainfall.csv")

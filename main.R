@@ -13,7 +13,7 @@ RainDatFormat <- format_TimeSeries(RainDat)
 SimRainList <- getSimRain(RainDatFormat, rep = 10, mod = "expo")
 
 ##---------------------------------------------------------------------#
-
+#Added a new line
 
 library(airGR)
 DATA <- data.frame(matrix(NA,nrow = length(RainDat[,1]), ncol = 4))

@@ -7,7 +7,7 @@ EvapDat <- read.csv("69041_SILO_Evap.csv")
 FlowDat <- read.csv("215004_HRS_Flow.csv")
 
 ####---Add 0.1 to FlowDat
-#FlowDat_1 <- FlowDat[,2]+1
+FlowDat_1 <- FlowDat[,2]+0.1
 
 ##Fit the WGEN model and Generate some rainfall replicates
 RainDatFormat <- WGEN::format_TimeSeries(RainDat)
@@ -18,7 +18,7 @@ SimRainList <- WGEN::getSimRain(RainDatFormat, rep = 10, mod = "gama")
 library(airGR)
 DATA <- data.frame(matrix(NA,nrow = length(RainDat[,1]), ncol = 4))
 colnames(DATA) <- c("Date_Time","P","Q","E")
-DATA[,1] <- RainDat[,1]; DATA[,2] <- RainDat[,2]; DATA[,3] <- FlowDat[,2]; DATA[,4] <- EvapDat[,2]
+DATA[,1] <- RainDat[,1]; DATA[,2] <- RainDat[,2]; DATA[,3] <- FlowDat_1; DATA[,4] <- EvapDat[,2]
 
 DATA$Date_Time <- strptime(as.character(DATA$Date_Time), "%d/%m/%Y")
 DATA$Date_Time <- format(DATA$Date_Time,"%Y-%m-%d")

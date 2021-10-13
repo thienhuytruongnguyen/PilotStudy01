@@ -1,0 +1,9 @@
+Catchment: Cotter River at Gingera, ACT
+Area: 130 km^2
+Coordinate: -35.59, 148.82
+Record length: 1964-2019
+--------------------------
+Rain & PET (PET~Morton)
+Source: SILO
+Station ID: 70317
+Length: 1964-2019

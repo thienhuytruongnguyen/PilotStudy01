@@ -1,25 +1,22 @@
-#BREE WAS HERE
-#Require local WGEN package
-install.packages("WGEN",repos = NULL,type = "source")
+
 WD<-getwd()
 ##Get flow, rain and evap data
 RainDat <- read.csv(paste(WD,"/Data/Catchment02/70317_SILO_Rain.csv",sep = ""))
 EvapDat <- read.csv(paste(WD,"/Data/Catchment02/70317_SILO_Evap.csv",sep = ""))
 FlowDat <- read.csv(paste(WD,"/Data/Catchment02/410730_HRS_FLow.csv",sep = ""))
 FlowDat$Value <- (FlowDat$Value*(1E12)/(1.3E14))
-####---Add 0.1 to FlowDat
-FlowDat_1 <- FlowDat[,2]+0.1
+
 
 ##Fit the WGEN model and Generate some rainfall replicates
-RainDatFormat <- WGEN::format_TimeSeries(RainDat)
-SimRainList <- WGEN::getSimRain(RainDatFormat, rep = 10, mod = "gama")
-
+RainDatFormat <- format_TimeSeries(RainDat)
+SimRainList <- getSimRain(RainDatFormat, rep = 10, mod = "gama")
+Simrain <- rbind(SimRainList[[1]][2],SimRainList[[2]][2],SimRainList[[3]][2],SimRainList[[4]][2],SimRainList[[5]][2],SimRainList[[6]][2],SimRainList[[7]][2],SimRainList[[8]][2],SimRainList[[9]][2],SimRainList[[10]][2],SimRainList[[11]][2],SimRainList[[12]][2])
 ##---------------------------------------------------------------------#
 
 library(airGR)
 DATA <- data.frame(matrix(NA,nrow = length(RainDat[,1]), ncol = 4))
 colnames(DATA) <- c("DatesR","P","Q","E")
-DATA[,1] <- RainDat[,1]; DATA[,2] <- RainDat[,2]; DATA[,3] <- FlowDat[,2]; DATA[,4] <- EvapDat[,2]
+DATA[,1] <- RainDat[,1]; DATA[,2] <- Simrain$X2; DATA[,3] <- FlowDat[,2]; DATA[,4] <- EvapDat[,2]
 
 
 DATA$DatesR <- strptime(as.character(DATA$DatesR), "%d/%m/%Y")

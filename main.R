@@ -1,11 +1,10 @@
 ##Get work directory
 WD<-getwd()
+
 ##Get flow, rain and evap data
 RainDat <- read.csv(paste(WD,"/Data/Catchment02/70317_SILO_Rain.csv",sep = ""))
 EvapDat <- read.csv(paste(WD,"/Data/Catchment02/70317_SILO_Evap.csv",sep = ""))
 FlowDat <- read.csv(paste(WD,"/Data/Catchment02/410730_HRS_FLow.csv",sep = ""))
-
-
 
 ##Fit the WGEN model and Generate some rainfall replicates
 RainDatFormat <- format_TimeSeries(RainDat)

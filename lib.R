@@ -597,158 +597,72 @@ monthlytotal_stats_plot<-function
 }
 ##---------------------------------------##
 ##calibrate GR4J model
-##Format data
-getInput <- function(){
-  
+##Make input data
+makeInputGR4J <- function(
+  P,#Rainfall (mm)
+  Q,#Flow (ML/day)
+  E,#PET (mm)
+  Date,
+  A #Cacthment area (km^2)
+  ){
+  #Converting flow unit from ML/day to mm by dividing by catchment area
+  Q <- Q/A
+  DATA <- data.frame(matrix(NA,nrow = length(RainDat[,1]), ncol = 4))
+  colnames(DATA) <- c("DatesR","P","Q","E")
+  DATA$DatesR <- Date; DATA$P <- P; DATA$Q <- Q; DATA$E <- E
+  DATA$DatesR <- strptime(as.character(DATA$DatesR), "%d/%m/%Y")
+  DATA$DatesR <- format(DATA$DatesR,"%Y-%m-%d")#format into Y-m-d
+  DATA$DatesR <- as.POSIXlt(DATA$DatesR,tz="",format="%Y-%m-%d")#Format date string
+  return(DATA)
 }
-##InputsModel object
-InputsModel <- airGR::CreateInputsModel(FUN_MOD = airGR::RunModel_GR4J, DatesR = DATA$DatesR,
-                                        Precip = DATA$P, PotEvap = DATA$E)
-
-#RunOptions object
-##1.Index Run and WarmUp period
-Ind_Run <- seq(which(format(DATA$DatesR, format = "%Y-%m-%d") == "1970-01-01"),
-               which(format(DATA$DatesR, format = "%Y-%m-%d") == "2019-02-28"))
-Ind_WarmUp <- seq(which(format(DATA$DatesR, format = "%Y-%m-%d") == "1964-01-01"),
-                  which(format(DATA$DatesR, format = "%Y-%m-%d") == "1969-12-31"))
-##2.Run Option
-RunOptions <- airGR::CreateRunOptions(FUN_MOD = airGR::RunModel_GR4J,
-                                      InputsModel = InputsModel, IndPeriod_Run = Ind_Run,
-                                      IniStates = NULL, IniResLevels = NULL, IndPeriod_WarmUp = Ind_WarmUp)
-
-#InputsCrit object
-InputsCrit <- airGR::CreateInputsCrit(FUN_CRIT = airGR::ErrorCrit_NSE, InputsModel = InputsModel, 
-                                      RunOptions = RunOptions, VarObs = "Q", Obs = DATA$Q[Ind_Run])
-
-#CalibOptions object
-CalibOptions <- airGR::CreateCalibOptions(FUN_MOD = airGR::RunModel_GR4J, FUN_CALIB = airGR::Calibration_Michel)
-
-#CALIBRATION
-OutputsCalib <- airGR::Calibration_Michel(InputsModel = InputsModel, RunOptions = RunOptions,
-                                          InputsCrit = InputsCrit, CalibOptions = CalibOptions,
-                                          FUN_MOD = airGR::RunModel_GR4J)
-#Get GR4J parameter
-Param <- OutputsCalib$ParamFinalR
-
-#Run GR4J
-OutputsModel <- airGR::RunModel_GR4J(InputsModel = InputsModel, RunOptions = RunOptions, Param = Param)
-
-#Plot
-plot(OutputsModel, Qobs = DATA$Q[Ind_Run])
-
-#------------------------------Global Optimization------------------------------------------------#
-lowerGR4J <- rep(-9.99, times = 4)
-upperGR4J <- rep(+9.99, times = 4)
-
-#Differential Evolution
-optDE <- DEoptim::DEoptim(fn = OptimGR4J,
-                          lower = lowerGR4J, upper = upperGR4J,
-                          control = DEoptim::DEoptim.control(NP = 40, trace = 10))
-#Particle Swarm
-optPSO <- hydroPSO::hydroPSO(fn = OptimGR4J,
-                             lower = lowerGR4J, upper = upperGR4J,
-                             control = list(write2disk = FALSE, verbose = FALSE))
-
-#-------------------------------Multi-objective optimization---------------------------------------#
-
-InputsCrit_inv <- InputsCrit
-InputsCrit_inv$transfo <- "inv"
-algo <- "caRamel"
-optMO <- caRamel::caRamel(nobj = 2,
-                          nvar = 4,
-                          minmax = rep(TRUE, 2),
-                          bounds = matrix(c(lowerGR4J, upperGR4J), ncol = 2),
-                          func = MOptimGR4J,
-                          popsize = 100,
-                          archsize = 100,
-                          maxrun = 15000,
-                          prec = rep(1.e-3, 2),
-                          carallel = FALSE,
-                          graph = FALSE)
-param_optMO <- apply(optMO$parameters, MARGIN = 1, FUN = function(x) {
-  airGR::TransfoParam_GR4J(x, Direction = "TR")
-})
-RunOptions$Outputs_Sim <- "Qsim"
-run_optMO <- apply(optMO$parameters, MARGIN = 1, FUN = function(x) {
-  airGR::RunModel_GR4J(InputsModel = InputsModel,
-                       RunOptions = RunOptions,
-                       Param = x)
-}$Qsim)
-run_optMO <- data.frame(run_optMO)
-
-x<-BasinObs
-ind_t<-seq(which(format(DATA$DatesR, format = "%Y-%m-%d")=="1984-01-01"),
-           which(format(DATA$DatesR, format = "%Y-%m-%d")=="2012-12-31"))
-x[,2] <- DATA$P[ind_t]
-x[,4] <- DATA$E[ind_t]
-x[,6] <- DATA$Q[ind_t]
-## loading catchment data
-data(L0123001)
-
-## preparation of InputsModel object
-InputsModel <- CreateInputsModel(FUN_MOD = RunModel_GR4J, DatesR = x$DatesR,
-                                 Precip = x$P, PotEvap = x$E)
-
-## calibration period selection
-Ind_Run <- seq(which(format(x$DatesR, format = "%Y-%m-%d")=="1990-01-01"),
-               which(format(x$DatesR, format = "%Y-%m-%d")=="1999-12-31"))
-
-## preparation of RunOptions object
-RunOptions <- CreateRunOptions(FUN_MOD = RunModel_GR4J, InputsModel = InputsModel,
-                               IndPeriod_Run = Ind_Run)
-
-## calibration criterion: preparation of the InputsCrit object
-InputsCrit <- CreateInputsCrit(FUN_CRIT = ErrorCrit_NSE, InputsModel = InputsModel,
-                               RunOptions = RunOptions, Obs = x$Qmm[Ind_Run])
-
-## preparation of CalibOptions object
-CalibOptions <- CreateCalibOptions(FUN_MOD = RunModel_GR4J, FUN_CALIB = Calibration_Michel)
-
-## calibration
-OutputsCalib <- Calibration_Michel(InputsModel = InputsModel, RunOptions = RunOptions,
-                                   InputsCrit = InputsCrit, CalibOptions = CalibOptions,
-                                   FUN_MOD = RunModel_GR4J)
-
-## simulation
-Param <- OutputsCalib$ParamFinalR
-OutputsModel <- RunModel_GR4J(InputsModel = InputsModel,
-                              RunOptions = RunOptions, Param = Param)
-
 ##---------------------------------------##
-##Optim GR4J
-OptimGR4J <- function(ParamOptim) {
-  ## Transformation of the parameter set to real space
-  RawParamOptim <- airGR::TransfoParam_GR4J(ParamIn = ParamOptim,
-                                            Direction = "TR")
-  ## Simulation given a parameter set
-  OutputsModel <- airGR::RunModel_GR4J(InputsModel = InputsModel,
-                                       RunOptions = RunOptions,
-                                       Param = RawParamOptim)
-  ## Computation of the value of the performance criteria
-  OutputsCrit <- airGR::ErrorCrit_RMSE(InputsCrit = InputsCrit,
-                                       OutputsModel = OutputsModel,
-                                       verbose = FALSE)
-  return(OutputsCrit$CritValue)
+##calibrate GR4J model
+getParamGR4J <- function(inputGR4J,#observed input data
+                          from="1970-01-01",#Start of period
+                          to="2019-02-28",#End of period
+                          startWarmUp="1964-01-01",
+                          endWarmUp="1969-12-31"
+                          ){
+  require (airGR)
+  
+  #set Input model
+  InputsModel <- airGR::CreateInputsModel(FUN_MOD = airGR::RunModel_GR4J, DatesR = inputGR4J$DatesR,
+                                          Precip = inputGR4J$P, PotEvap = inputGR4J$E)
+  #RunOptions object
+  ##1.Index Run and WarmUp period
+  Ind_Run <- seq(which(format(inputGR4J$DatesR, format = "%Y-%m-%d") == from),
+                 which(format(inputGR4J$DatesR, format = "%Y-%m-%d") == to))
+  Ind_WarmUp <- seq(which(format(inputGR4J$DatesR, format = "%Y-%m-%d") == startWarmUp),
+                    which(format(inputGR4J$DatesR, format = "%Y-%m-%d") == endWarmUp))
+  ##2.Run Option
+  RunOptions <- airGR::CreateRunOptions(FUN_MOD = airGR::RunModel_GR4J,
+                                        InputsModel = InputsModel, IndPeriod_Run = Ind_Run,
+                                        IniStates = NULL, IniResLevels = NULL, IndPeriod_WarmUp = Ind_WarmUp)
+  
+  #InputsCrit object
+  InputsCrit <- airGR::CreateInputsCrit(FUN_CRIT = airGR::ErrorCrit_NSE, InputsModel = InputsModel, 
+                                        RunOptions = RunOptions, VarObs = "Q", Obs = inputGR4J$Q[Ind_Run])
+  
+  #CalibOptions object
+  CalibOptions <- airGR::CreateCalibOptions(FUN_MOD = airGR::RunModel_GR4J, FUN_CALIB = airGR::Calibration_Michel)
+  
+  #CALIBRATION
+  OutputsCalib <- airGR::Calibration_Michel(InputsModel = InputsModel, RunOptions = RunOptions,
+                                            InputsCrit = InputsCrit, CalibOptions = CalibOptions,
+                                            FUN_MOD = airGR::RunModel_GR4J)
+  #Get GR4J parameter
+  Param <- OutputsCalib$ParamFinalR
+  return(list(Param,Ind_Run,InputsModel,RunOptions))
 }
-##Multi-objective optim
-MOptimGR4J <- function(i) {
-  if (algo == "caRamel") {
-    ParamOptim <- x[i, ]
-  }
-  ## Transformation of the parameter set to real space
-  RawParamOptim <- airGR::TransfoParam_GR4J(ParamIn = ParamOptim,
-                                            Direction = "TR")
-  ## Simulation given a parameter set
-  OutputsModel <- airGR::RunModel_GR4J(InputsModel = InputsModel,
-                                       RunOptions = RunOptions,
-                                       Param = RawParamOptim)
-  ## Computation of the value of the performance criteria
-  OutputsCrit1 <- airGR::ErrorCrit_KGE(InputsCrit = InputsCrit,
-                                       OutputsModel = OutputsModel,
-                                       verbose = FALSE)
-  ## Computation of the value of the performance criteria
-  OutputsCrit2 <- airGR::ErrorCrit_KGE(InputsCrit = InputsCrit_inv,
-                                       OutputsModel = OutputsModel,
-                                       verbose = FALSE)
-  return(c(OutputsCrit1$CritValue, OutputsCrit2$CritValue))
+##---------------------------------------##
+#run GR4J
+runGR4J <- function(paramGR4J){
+  require(airGR)
+  
+  
+  OutputsModel <- airGR::RunModel_GR4J(InputsModel = paramGR4J[[3]], RunOptions = paramGR4J[[4]], Param = paramGR4J[[1]])
+  return(OutputsModel)
+  # 
+  # #Plot
+  # plot(OutputsModel, Qobs = inputGR4J$Q[Ind_Run])
 }

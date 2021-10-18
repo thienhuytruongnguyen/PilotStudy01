@@ -666,3 +666,49 @@ runGR4J <- function(paramGR4J){
   # #Plot
   # plot(OutputsModel, Qobs = inputGR4J$Q[Ind_Run])
 }
+##---------------------------------------##
+##Getting rain and PET data from URL
+getWeatherData <- function(whichStation){
+  require(tidyverse)
+  require(sf)
+  res <- httr::GET("https://www.longpaddock.qld.gov.au/cgi-bin/silo/PatchedPointDataset.php", query=whichStation)
+  silodata <- as.data.frame(read_csv(httr::content(res, as="text")))
+  return(silodata)
+}
+##---------------------------------------##
+##Get weather site list
+getWeatherSiteList <- function(){
+  require(tidyverse)
+  require(sf)
+  res <- httr::GET("https://www.longpaddock.qld.gov.au/cgi-bin/silo/PatchedPointDataset.php?format=name&nameFrag=_")
+  recs <- read_delim(httr::content(res, as="text"), delim = "|"); colnames(recs) <- c('station','name','latitude','longitude','state', 'elevation', 'extra')
+   recs <- recs %>%  mutate(latitude = as.numeric(latitude)) %>%
+     mutate(longitude = as.numeric(longitude))
+  return(recs)
+}
+##---------------------------------------##
+##Get nearest weather station
+getNearestWeatherStation <- function(flowSiteList,weatherSiteList,whichSite = 1){
+  require(sp)
+  require(rgeos)
+  #construct spatial classes and perform geo-processing.
+  #Read the data and transform them to spatial objects
+  flowCoord <- flowSiteList[whichSite,c(1,2,3)]
+  siloCoord <- weatherSiteList[,c(1,3,4)]
+  merg <- rbind(flowCoord,siloCoord)
+  sp.merg <- merg
+  coordinates(sp.merg) <- ~longitude+latitude
+  
+  #calculate pairwise distances between points
+  d <- gDistance(sp.merg, byid=T)
+  
+  #Find second shortest distance (closest distance is of point to itself, therefore use second shortest)
+  min.d <- apply(d, 1, function(x) order(x, decreasing=F)[2])
+  
+  #Result
+  newdata <- cbind(merg, merg[min.d,], apply(d, 1, function(x) sort(x, decreasing=F)[2]))
+  nearestStationNumber<-as.numeric(newdata[1,4])
+  nearestStationNumber<-as.character(nearestStationNumber)
+  return(nearestStationNumber)
+}
+

@@ -1,9 +1,0 @@
-Catchment: Coorang River at Hockeys, NSW
-Area: 165.6 km^2
-Coordinate: -35.15, 150.03
-Record length: 1950 - 2019
---------------------------
-Rain & PET (PET~Morton)
-Source: SILO
-Station ID: 69049
-Length: 1950-2019

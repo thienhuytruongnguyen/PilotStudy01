@@ -1,7 +1,7 @@
 ##Format Time Series
 format_TimeSeries <- function(x){
-library(lubridate)
-library(dplyr)
+require(lubridate)
+require(dplyr)
 x <- x %>% #Set format for Date column
   mutate(Date_Time = as.Date(Date_Time, format = "%d/%m/%Y")) %>%
   mutate(month = month(Date_Time)) %>%
@@ -260,7 +260,7 @@ expo.loglike <- function(theta,obs.data){
 }
 ##----------------------------------------##
 #get SimRain (WGEN model)
-getSimRain <- function(obs.data, rep = 100, mod = "gama"){
+getSimRain <- function(obs.data, rep = 10, mod = "gama"){
 rain.data <- format_TimeSeries(obs.data) #formatting the obs data
 
 #Declaring model parameters objects
@@ -272,7 +272,7 @@ occur.param <- fitMCModel(rain.data)
 amount.param <- fitAmountModel(rain.data,mod)
 
 #Simulating
-ls.month.sim <-Amount_model(occur.param, amount.param, rep, obs.data)
+ls.month.sim <- Amount_model(occur.param, amount.param, rep, obs.data)
 
 return(ls.month.sim)
 }
@@ -618,22 +618,25 @@ makeInputGR4J <- function(
 ##---------------------------------------##
 ##calibrate GR4J model
 getParamGR4J <- function(inputGR4J,#observed input data
-                          from="1970-01-01",#Start of period
-                          to="2019-02-28",#End of period
-                          startWarmUp="1964-01-01",
-                          endWarmUp="1969-12-31"
+                          start="1970-01-01",#Start of period
+                          end="2019-02-28",#End of period
+                          warmup
                           ){
   require (airGR)
-  
+  require (lubridate)
+  #get start and end of run and warmup period
+  start <- as.Date(start,tryFormats = "%d/%m/%Y"); end <- as.Date(end,tryFormats = "%d/%m/%Y")
+  from <- start %m+% months(warmup) ; to <- end
+  startWarmUp <- start ; endWarmUp <- from %m-% days(1)
   #set Input model
   InputsModel <- airGR::CreateInputsModel(FUN_MOD = airGR::RunModel_GR4J, DatesR = inputGR4J$DatesR,
                                           Precip = inputGR4J$P, PotEvap = inputGR4J$E)
   #RunOptions object
   ##1.Index Run and WarmUp period
-  Ind_Run <- seq(which(format(inputGR4J$DatesR, format = "%Y-%m-%d") == from),
-                 which(format(inputGR4J$DatesR, format = "%Y-%m-%d") == to))
-  Ind_WarmUp <- seq(which(format(inputGR4J$DatesR, format = "%Y-%m-%d") == startWarmUp),
-                    which(format(inputGR4J$DatesR, format = "%Y-%m-%d") == endWarmUp))
+  Ind_Run <- seq(which(inputGR4J$DatesR == from),
+                 which(inputGR4J$DatesR == to))
+  Ind_WarmUp <- seq(which(inputGR4J$DatesR == startWarmUp),
+                    which(inputGR4J$DatesR == endWarmUp))
   ##2.Run Option
   RunOptions <- airGR::CreateRunOptions(FUN_MOD = airGR::RunModel_GR4J,
                                         InputsModel = InputsModel, IndPeriod_Run = Ind_Run,
@@ -668,9 +671,18 @@ runGR4J <- function(paramGR4J){
 }
 ##---------------------------------------##
 ##Getting rain and PET data from URL
-getWeatherData <- function(whichStation){
+getWeatherData <- function(whichStation,start,finish){
   require(tidyverse)
   require(sf)
+  whichStation = list(
+    start=start, 
+    finish=finish,
+    station=nearestStation,
+    format="csv",
+    comment="RP",
+    username="truonghuythien.nguyen@adelaide.edu.au",
+    password="silo"
+  )
   res <- httr::GET("https://www.longpaddock.qld.gov.au/cgi-bin/silo/PatchedPointDataset.php", query=whichStation)
   silodata <- as.data.frame(read_csv(httr::content(res, as="text")))
   return(silodata)
@@ -711,4 +723,15 @@ getNearestWeatherStation <- function(flowSiteList,weatherSiteList,whichSite = 1)
   nearestStationNumber<-as.character(nearestStationNumber)
   return(nearestStationNumber)
 }
-
+##---------------------------------------##
+##Get average Sim Rain
+getAverageSimRain <- function(SimRainList){
+  rep = length(SimRainList[[1]]) #get number of replicates
+  lengthSim <- sum(length(SimRainList[[1]]$X1),length(SimRainList[[2]]$X1),length(SimRainList[[3]]$X1),length(SimRainList[[4]]$X1),length(SimRainList[[5]]$X1),length(SimRainList[[6]]$X1),length(SimRainList[[7]]$X1),length(SimRainList[[8]]$X1),length(SimRainList[[9]]$X1),length(SimRainList[[10]]$X1),length(SimRainList[[11]]$X1),length(SimRainList[[12]]$X1))
+  simRain <- data.frame(matrix(NA,nrow = lengthSim, ncol = rep))
+  for (i in 1:rep){
+    simRain[,i] <- rbind(SimRainList[[1]][i],SimRainList[[2]][i],SimRainList[[3]][i],SimRainList[[4]][i],SimRainList[[5]][i],SimRainList[[6]][i],SimRainList[[7]][i],SimRainList[[8]][i],SimRainList[[9]][i],SimRainList[[10]][i],SimRainList[[11]][i],SimRainList[[12]][i])
+  }
+  averageSimRain <- rowMeans(simRain[,1:rep])
+  return(averageSimRain)
+}

@@ -304,8 +304,9 @@ percentile95 <- function(x){
 wetday_monthlystats_plot <- function
 (monthly.obs, ##<< is a dataframe of observed rainfall at a gauged with the following format
  ##(column 1: Date; column 2: rainfall amount (mm); column 3: day; column 4:month; column 5: year)
- monthly.pred.list ##<<A list that contain 12 dataframes corresponding for 12 month
+ monthly.pred.list, ##<<A list that contain 12 dataframes corresponding for 12 month
  ##each dataframe contains the simulated rainfall values for each month with length equal to observed data.frames
+ type = "boxplot"
 ){
   
   #require(ggplot2)
@@ -358,36 +359,39 @@ wetday_monthlystats_plot <- function
   
   ##Start plotting
   title_plot1 <- c("Monthly wet day amounts (mm): means","Monthly wet day amounts (mm): skew","Monthly wet day amounts (mm): std dev")
-  ylab_plot_2 <- c("mean montly wet day amounts (mm)","skew montly wet day amounts (mm)","std dev montly wet day amounts (mm)")
-  
+  title_plot_2 <- c("mean montly wet day amounts (mm)","skew montly wet day amounts (mm)","std dev montly wet day amounts (mm)")
+  par(mfrow = c(2,2))
   for (i in 1:3){
-    ##Type 1
-    ##If statements are used to select the x and y limit of the plot
-    if (min(pred.stats[[i]])<min(t(obs.monthwetday.stats[i,]))){
-      min.range = min(pred.stats[[i]])
-    } else {min.range = min(t(obs.monthwetday.stats[i,]))}
-    if (max(pred.stats[[i]])>max(t(obs.monthwetday.stats[i,]))){
-      max.range = max(pred.stats[[i]])
-    } else {max.range = max(t(obs.monthwetday.stats[i,]))}
-    ##Box plot function with modifiable whisker range 
-    boxplot.ext(pred.stats[[i]],
-                ylim=c(min.range,max.range),
-                whiskersProb = c(0.05,0.95))
-    ##Point the observed data on the plot
-    points(t(obs.monthwetday.stats[i,]),col="red",pch=3)
-    title(ylab=ylab_plot_2[i])
+    if (type == "boxplot"){
+      ##Type 1
+      ##If statements are used to select the x and y limit of the plot
+      if (min(pred.stats[[i]])<min(t(obs.monthwetday.stats[i,]))){
+        min.range = min(pred.stats[[i]])
+      } else {min.range = min(t(obs.monthwetday.stats[i,]))}
+      if (max(pred.stats[[i]])>max(t(obs.monthwetday.stats[i,]))){
+        max.range = max(pred.stats[[i]])
+      } else {max.range = max(t(obs.monthwetday.stats[i,]))}
+      ##Box plot function with modifiable whisker range 
+      boxplot.ext(pred.stats[[i]],
+                  ylim=c(min.range,max.range),
+                  whiskersProb = c(0.05,0.95))
+      ##Point the observed data on the plot
+      points(t(obs.monthwetday.stats[i,]),col="red",pch=3)
+      title(main = title_plot_2[i])
+    } else if (type == "errorbar"){
+      ##Type 2: Error bar, using arrows() function to mimic error bar
+      ## calculate the range of the arrow
+      x<- sapply(pred.stats[[i]], pred.interval)
+      ## Scatter plot the each 50%percentile point of the sim data to each point of the observed
+      plot(x[2,],t(obs.monthwetday.stats[i,]),pch=3,col="blue",cex=0.5,
+           xlim=c(min(x[1,]),max(x[3,])),
+           xlab="simulated",ylab="observed")
+      ##Plot the arrows with range of 90% prediction interval
+      arrows(x0=x[1,],y0=t(obs.monthwetday.stats[i,]),x1=x[3,],y1=t(obs.monthwetday.stats[i,]),code=3, angle=90, length=0.0,col = "blue")     
+      abline(coef = c(0,1),col="red")
+      title(main=title_plot1[i])
+    }
     
-    ##Type 2: Error bar, using arrows() function to mimic error bar
-    ## calculate the range of the arrow
-    x<- sapply(pred.stats[[i]], pred.interval)
-    ## Scatter plot the each 50%percentile point of the sim data to each point of the observed
-    plot(x[2,],t(obs.monthwetday.stats[i,]),pch=3,col="blue",cex=0.5,
-         xlim=c(min(x[1,]),max(x[3,])),
-         xlab="simulated",ylab="observed")
-    ##Plot the arrows with range of 90% prediction interval
-    arrows(x0=x[1,],y0=t(obs.monthwetday.stats[i,]),x1=x[3,],y1=t(obs.monthwetday.stats[i,]),code=3, angle=90, length=0.0,col = "blue")     
-    abline(coef = c(0,1),col="red")
-    title(main=title_plot1[i])
   }
 }
 ##----------------------------------------##
@@ -461,7 +465,8 @@ CI90 <- function(x){
 monthlytotal_stats_plot<-function
 (monthly.obs, ##<< is a dataframe of observed rainfall at a gauged with the following format (column 1: Date; column 2: rainfall amount (mm); column 3: day; column 4:month; column 5: year)
  monthly.pred.list,##<<A list that contain 12 dataframes corresponding for 12 month each dataframe contains the simulated rainfall values for each month with length equal to observed data.frames
- threshold = 0
+ threshold = 0,
+ type = "boxplot" #or "errorbar"
 ){
   ##Passing observed and simulated data from input
   rain.data <- monthly.obs
@@ -562,36 +567,44 @@ monthlytotal_stats_plot<-function
   
   title.plot2 <- c("Monthly totals (mm): means","Monthly totals (mm): std dev","Monthly totals (mm): 5th percentile",
                    "Monthly totals (mm): 95th percentile","Monthly no. wet days: means","Monthly no. wet days: std dev")
-  ylab.plot1 <- c("mean monhtly total rainfall (mm)","std dev monhtly total rainfall (mm)","5th percentile monhtly total rainfall (mm)",
+  title.plot1 <- c("mean monhtly total rainfall (mm)","std dev monhtly total rainfall (mm)","5th percentile monhtly total rainfall (mm)",
                   "95th percentile monhtly total rainfall (mm)","mean monthly number of wet day","std dev monthly number of wet day")
+  par(mfrow=c(3,2))
   for (i in 1:6){
-    ##Type 1
-    ##If statements are used to select the x and y limit of the plot
-    if (min(pred.stats[[i]])<min(t(obs.month.total.stats[i,]))){
-      min.range = min(pred.stats[[i]])
-    } else {min.range = min(t(obs.month.total.stats[i,]))}
-    if (max(pred.stats[[i]])>max(t(obs.month.total.stats[i,]))){
-      max.range = max(pred.stats[[i]])
-    } else {max.range = max(t(obs.month.total.stats[i,]))}
-    ##Box plot function with modifiable whisker range 
-    boxplot.ext(pred.stats[[i]],
-                ylim=c(min.range,max.range),
-                whiskersProb = c(0.05,0.95))
-    ##Point the observed data on the plot
-    points(t(obs.month.total.stats[i,]),col="red",pch=3)
-    title(ylab=ylab.plot1[i])
+   
+    if (type == "boxplot"){
+      ##Type 1
+      ##If statements are used to select the x and y limit of the plot
+      
+      if (min(pred.stats[[i]])<min(t(obs.month.total.stats[i,]))){
+        min.range = min(pred.stats[[i]])
+      } else {min.range = min(t(obs.month.total.stats[i,]))}
+      if (max(pred.stats[[i]])>max(t(obs.month.total.stats[i,]))){
+        max.range = max(pred.stats[[i]])
+      } else {max.range = max(t(obs.month.total.stats[i,]))}
+      ##Box plot function with modifiable whisker range 
+      boxplot.ext(pred.stats[[i]],
+                  ylim=c(min.range,max.range),
+                  whiskersProb = c(0.05,0.95))
+      ##Point the observed data on the plot
+      points(t(obs.month.total.stats[i,]),col="red",pch=3)
+      title(main = title.plot1[i])
+    } else if (type == "errorbar"){
+      
+      ##Type 2: Error bar, using arrows() function to mimic error bar
+      ## calculate the range of the arrow
+      x<- sapply(pred.stats[[i]], pred.interval)
+      ## Scatter plot the each 50%percentile point of the sim data to each point of the observed
+      plot(x[2,],t(obs.month.total.stats[i,]),pch=3,col="blue",cex=0.5,
+           xlim=c(min(x[1,]),max(x[3,])),
+           xlab="simulated",ylab="observed")
+      ##Plot the arrows with range of 90% prediction interval
+      arrows(x0=x[1,],y0=t(obs.month.total.stats[i,]),x1=x[3,],y1=t(obs.month.total.stats[i,]),code=3, angle=90, length=0.0,col = "blue")     
+      abline(coef = c(0,1),col="red")
+      title(main=title.plot2[i])
+    }
     
-    ##Type 2: Error bar, using arrows() function to mimic error bar
-    ## calculate the range of the arrow
-    x<- sapply(pred.stats[[i]], pred.interval)
-    ## Scatter plot the each 50%percentile point of the sim data to each point of the observed
-    plot(x[2,],t(obs.month.total.stats[i,]),pch=3,col="blue",cex=0.5,
-         xlim=c(min(x[1,]),max(x[3,])),
-         xlab="simulated",ylab="observed")
-    ##Plot the arrows with range of 90% prediction interval
-    arrows(x0=x[1,],y0=t(obs.month.total.stats[i,]),x1=x[3,],y1=t(obs.month.total.stats[i,]),code=3, angle=90, length=0.0,col = "blue")     
-    abline(coef = c(0,1),col="red")
-    title(main=title.plot2[i])
+   
   }
   
 }
@@ -610,6 +623,7 @@ makeInputGR4J <- function(
   DATA <- data.frame(matrix(NA,nrow = length(RainDat[,1]), ncol = 4))
   colnames(DATA) <- c("DatesR","P","Q","E")
   DATA$DatesR <- Date; DATA$P <- P; DATA$Q <- Q; DATA$E <- E
+  
   DATA$DatesR <- strptime(as.character(DATA$DatesR), "%d/%m/%Y")
   DATA$DatesR <- format(DATA$DatesR,"%Y-%m-%d")#format into Y-m-d
   DATA$DatesR <- as.POSIXlt(DATA$DatesR,tz="",format="%Y-%m-%d")#Format date string
@@ -643,8 +657,7 @@ getParamGR4J <- function(inputGR4J,#observed input data
                                         IniStates = NULL, IniResLevels = NULL, IndPeriod_WarmUp = Ind_WarmUp)
   
   #InputsCrit object
-  InputsCrit <- airGR::CreateInputsCrit(FUN_CRIT = airGR::ErrorCrit_NSE, InputsModel = InputsModel, 
-                                        RunOptions = RunOptions, VarObs = "Q", Obs = inputGR4J$Q[Ind_Run])
+  InputsCrit <- airGR::CreateInputsCrit(FUN_CRIT = airGR::ErrorCrit_NSE, InputsModel = InputsModel, RunOptions = RunOptions, VarObs = "Q", Obs = inputGR4J$Q[Ind_Run])
   
   #CalibOptions object
   CalibOptions <- airGR::CreateCalibOptions(FUN_MOD = airGR::RunModel_GR4J, FUN_CALIB = airGR::Calibration_Michel)
@@ -662,13 +675,51 @@ getParamGR4J <- function(inputGR4J,#observed input data
 runGR4J <- function(paramGR4J){
   require(airGR)
   
-  
   OutputsModel <- airGR::RunModel_GR4J(InputsModel = paramGR4J[[3]], RunOptions = paramGR4J[[4]], Param = paramGR4J[[1]])
   return(OutputsModel)
   # 
   # #Plot
   # plot(OutputsModel, Qobs = inputGR4J$Q[Ind_Run])
 }
+##---------------------------------------##
+## get efficiency criterion
+getEffiReport <- function(outputGR4J,inputGR4J,#input data
+                          start="1970-01-01",#Start of period
+                          end="2019-02-28",#End of period)
+                          warmup
+                          ){
+  require(airGR)
+  
+  #get start and end of run and warmup period
+  start <- as.Date(start,tryFormats = "%d/%m/%Y"); end <- as.Date(end,tryFormats = "%d/%m/%Y")
+  from <- start %m+% months(warmup) ; to <- end
+  startWarmUp <- start ; endWarmUp <- from %m-% days(1)
+  
+  #set Input model
+  InputsModel <- airGR::CreateInputsModel(FUN_MOD = airGR::RunModel_GR4J, DatesR = inputGR4J$DatesR,
+                                          Precip = inputGR4J$P, PotEvap = inputGR4J$E)
+  #RunOptions object
+  ##1.Index Run and WarmUp period
+  Ind_Run <- seq(which(inputGR4J$DatesR == from),
+                 which(inputGR4J$DatesR == to))
+  Ind_WarmUp <- seq(which(inputGR4J$DatesR == startWarmUp),
+                    which(inputGR4J$DatesR == endWarmUp))
+  
+  ##2.Run Option
+  RunOptions <- airGR::CreateRunOptions(FUN_MOD = airGR::RunModel_GR4J,
+                                        InputsModel = InputsModel, IndPeriod_Run = Ind_Run,
+                                        IniStates = NULL, IniResLevels = NULL, IndPeriod_WarmUp = Ind_WarmUp)
+  
+  #Input criterion
+  InputsCrit <- airGR::CreateInputsCrit(FUN_CRIT = airGR::ErrorCrit_NSE, InputsModel = InputsModel, RunOptions = RunOptions, VarObs = "Q", Obs = inputGR4J$Q[Ind_Run])
+  
+  #Output Criterion report
+  OutputsCrit <- ErrorCrit_NSE(InputsCrit = InputsCrit, OutputsModel = outputGR4J)
+  
+  return(OutputsCrit)
+}
+
+
 ##---------------------------------------##
 ##Getting rain and PET data from URL
 getWeatherData <- function(whichStation,start,finish){
@@ -732,6 +783,6 @@ getAverageSimRain <- function(SimRainList){
   for (i in 1:rep){
     simRain[,i] <- rbind(SimRainList[[1]][i],SimRainList[[2]][i],SimRainList[[3]][i],SimRainList[[4]][i],SimRainList[[5]][i],SimRainList[[6]][i],SimRainList[[7]][i],SimRainList[[8]][i],SimRainList[[9]][i],SimRainList[[10]][i],SimRainList[[11]][i],SimRainList[[12]][i])
   }
-  averageSimRain <- rowMeans(simRain[,1:rep])
+  averageSimRain <- rowMeans(simRain)
   return(averageSimRain)
 }

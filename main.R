@@ -4,7 +4,7 @@ WD<-getwd()
 ##Get site list
 flowSiteList <- read.table("siteList.txt",header=T,sep = "",dec = ".")
 weatherSiteList <- getWeatherSiteList()
-whichSite <- flowSiteList[1,]##1st row of flow site list
+whichSite <- flowSiteList[24,]##1st row of flow site list
 
 ##Find Nearest Weather station to Site
 nearestStation <- getNearestWeatherStation(flowSiteList, weatherSiteList, whichSite = whichSite$ID)
@@ -35,13 +35,13 @@ rep = 20 #set number of replicates
 SimRainList <- getSimRain(RainDatFormat, rep = rep, mod = "gama")
 
 ##Get Average SimRain
-averageSimRain <- getAverageSimRain(SimRainList)
+SimRain <- getSimRainRep(SimRainList)
 
 ##make input and param list with average simRain
-inputGR4J_simRain <- makeInputGR4J(P = averageSimRain, Q = FlowDat$Value, E = EvapDat$Value, Date = FlowDat$Date_Time, A = whichSite$area)
+inputGR4J_simRain <- makeInputGR4J(P = SimRain[,3], Q = FlowDat$Value, E = EvapDat$Value, Date = FlowDat$Date_Time, A = whichSite$area)
 
 paramGR4J_simRain <- paramGR4J
-paramGR4J_simRain[[3]]$Precip <- averageSimRain
+paramGR4J_simRain[[3]]$Precip <- SimRain[,3]
 
 ##Simulate flow time series with average simRain
 outputGR4J_simRain <- runGR4J(paramGR4J_simRain)
@@ -61,3 +61,7 @@ mtext("Obseved Flow vs Simulated Flow with Observed Rain", side = 4, line = 0.5)
 plot(outputGR4J_simRain, Qobs = inputGR4J_simRain$Q[paramGR4J_simRain[[2]]])+#plot comparison obs vs simflow_simRain
 mtext("Obseved Flow vs Simulated Flow with Simulated Rain", side = 4, line = 0.5)
 
+virtualObsExceedProb <- getExceedProb(outputGR4J$Qsim)
+plot(simExceedProb,log="y",type="l", col = rgb(red = 1, green = 0, blue = 0, alpha = 0.2),ylim=c(min(simExceedProb$Flow),max(simExceedProb)),lwd=2)
+lines(virtualObsExceedProb,col="blue",lwd=4)
+simExceedProb <- getExceedProb(outputGR4J_simRain$Qsim)

@@ -776,13 +776,25 @@ getNearestWeatherStation <- function(flowSiteList,weatherSiteList,whichSite = 1)
 }
 ##---------------------------------------##
 ##Get average Sim Rain
-getAverageSimRain <- function(SimRainList){
+getSimRainRep <- function(SimRainList){
   rep = length(SimRainList[[1]]) #get number of replicates
   lengthSim <- sum(length(SimRainList[[1]]$X1),length(SimRainList[[2]]$X1),length(SimRainList[[3]]$X1),length(SimRainList[[4]]$X1),length(SimRainList[[5]]$X1),length(SimRainList[[6]]$X1),length(SimRainList[[7]]$X1),length(SimRainList[[8]]$X1),length(SimRainList[[9]]$X1),length(SimRainList[[10]]$X1),length(SimRainList[[11]]$X1),length(SimRainList[[12]]$X1))
   simRain <- data.frame(matrix(NA,nrow = lengthSim, ncol = rep))
   for (i in 1:rep){
     simRain[,i] <- rbind(SimRainList[[1]][i],SimRainList[[2]][i],SimRainList[[3]][i],SimRainList[[4]][i],SimRainList[[5]][i],SimRainList[[6]][i],SimRainList[[7]][i],SimRainList[[8]][i],SimRainList[[9]][i],SimRainList[[10]][i],SimRainList[[11]][i],SimRainList[[12]][i])
   }
-  averageSimRain <- rowMeans(simRain)
-  return(averageSimRain)
+  
+  return(simRain)
+}
+##---------------------------------------##
+##Flow duration curve
+getExceedProb <- function(flow){
+  n <- length(flow) #number of events
+  P <- data.frame(matrix(NA,nrow = length(flow), ncol = 4))
+  colnames(P) <- c("value", "Flow", "Rank", "Exceedance_Probability")
+  P[,1] <- flow #get flow value
+  P[,2] <- sort(P[,1],decreasing = TRUE) #sort flow value in terms of magnitude
+  P[,3] <- 1:nrow(P) #rank
+  P[,4] <- P[,3]/(nrow(P)+1) #calculate exceedance probability
+  return(P[,c(4,2)])
 }

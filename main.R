@@ -4,7 +4,7 @@ WD<-getwd()
 ##Get site list
 flowSiteList <- read.table("siteList.txt",header=T,sep = "",dec = ".")
 weatherSiteList <- getWeatherSiteList()
-whichSite <- flowSiteList[23,]##1st row of flow site list
+whichSite <- flowSiteList[1,]##1st row of flow site list
 
 ##Find Nearest Weather station to Site
 nearestStation <- getNearestWeatherStation(flowSiteList, weatherSiteList, whichSite = whichSite$ID)
@@ -20,7 +20,7 @@ FlowDat[,2] <- FlowDat[,2] + 0.01
 ##Fit GR4J model
 inputGR4J <- makeInputGR4J(P = RainDat$Value, Q = FlowDat$Value, E = EvapDat$Value, Date = FlowDat$Date_Time, A = whichSite$area)
 start <- FlowDat[1,1] ; end <- FlowDat[length(FlowDat[,1]),1] #Set start and end of period
-warmup <- 12*35 #months, set warm-up period, airGR prefer more than 12 months
+warmup <- 24 #months, set warm-up period, airGR prefer more than 12 months
 paramGR4J <- getParamGR4J(inputGR4J = inputGR4J, start = start, end = end, warmup = warmup)
 
 ##Simulate flow time series
@@ -61,5 +61,3 @@ mtext("Obseved Flow vs Simulated Flow with Observed Rain", side = 4, line = 0.5)
 plot(outputGR4J_simRain, Qobs = inputGR4J_simRain$Q[paramGR4J_simRain[[2]]])+#plot comparison obs vs simflow_simRain
 mtext("Obseved Flow vs Simulated Flow with Simulated Rain", side = 4, line = 0.5)
 
-x<-FlowDat$Date_Time
-x<-as.Date(x,tryFormats = "%d/%m/%Y")

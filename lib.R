@@ -686,7 +686,7 @@ runGR4J <- function(paramGR4J){
 getEffiReport <- function(outputGR4J,inputGR4J,#input data
                           start="1970-01-01",#Start of period
                           end="2019-02-28",#End of period)
-                          warmup
+                          warmup=12
                           ){
   require(airGR)
   

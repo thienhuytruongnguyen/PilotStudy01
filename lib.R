@@ -60,6 +60,7 @@ occurr_stats <- function(monthlydata){
 fitMCModel<- function
 (obs.data ##<<Formatted observed data
 ){
+  obs.data <- format_TimeSeries(obs.data)
   ##Declare a dataframe to store the calibrated parameters
   param <- data.frame(matrix(nrow = 12,ncol = 4))
   
@@ -79,7 +80,7 @@ fitAmountModel<- function
 (obs.data,##<<Formated observed data
  mod##<<Choosing which mod. Either: expo or gama
 ){
-  
+  obs.data <- format_TimeSeries(obs.data)
   if (mod == "expo"){
     
     amount.param <- data.frame(matrix(NA,nrow = 12, ncol = 1))
@@ -146,7 +147,7 @@ fitAmountModel<- function
 }
 ##----------------------------------------##
 ##Occurence model (WGEN)
-monthly_occurr_model <- function(N,PDW,PWW){
+MCmodel <- function(N,PDW,PWW){
   ## Assume P_c = PDW for January
   P_c = PDW
   
@@ -175,7 +176,7 @@ Amount_model <- function
  rep,##<<Number of replicates
  obs.data##Formatted observed data
 ){
-  rain.data <- obs.data
+  rain.data <- format_TimeSeries(obs.data)
   ls.monthly.simrain <- list()##List to store sim data for each month
   
   if(length(amount.param[1,]) == 1){ #If exponential
@@ -185,7 +186,7 @@ Amount_model <- function
       ls.monthly.simrain[[i]] <- data.frame(matrix(NA,nrow=length(rain.data[rain.data$month==i,2]),ncol=rep))
       for (j in 1:rep){
         # Create the occurrence binary series
-        bin <- monthly_occurr_model(length(rain.data[rain.data$month==i,2]), occur.param[i,1], occur.param[i,2])
+        bin <- MCmodel(length(rain.data[rain.data$month==i,2]), occur.param[i,1], occur.param[i,2])
         # Declare monthly dataframe to store the SimRain
         pred <- rep(0,length(bin))
         # Loop to generate rainfall amount for rainny day
@@ -207,7 +208,7 @@ Amount_model <- function
       ls.monthly.simrain[[i]] <- data.frame(matrix(NA,nrow=length(rain.data[rain.data$month==i,2]),ncol=rep))
       for (j in 1:rep){
         # Create the occurrence binary series
-        bin <- monthly_occurr_model(length(rain.data[rain.data$month==i,2]), occur.param[i,1], occur.param[i,2])
+        bin <- MCmodel(length(rain.data[rain.data$month==i,2]), occur.param[i,1], occur.param[i,2])
         # Declare monthly dataframe to store the SimRain
         pred <- rep(0,length(bin))
         # Loop to generate rainfall amount for rainny day
@@ -261,15 +262,14 @@ expo.loglike <- function(theta,obs.data){
 ##----------------------------------------##
 #get SimRain (WGEN model)
 getSimRain <- function(obs.data, rep = 10, mod = "gama"){
-rain.data <- format_TimeSeries(obs.data) #formatting the obs data
 
 #Declaring model parameters objects
 occur.param <-data.frame()
 amount.param <-data.frame()
 
 #Calibrating model parameters
-occur.param <- fitMCModel(rain.data)
-amount.param <- fitAmountModel(rain.data,mod)
+occur.param <- fitMCModel(obs.data)
+amount.param <- fitAmountModel(obs.data,mod)
 
 #Simulating
 ls.month.sim <- Amount_model(occur.param, amount.param, rep, obs.data)
@@ -538,3 +538,27 @@ getExceedProbRep <- function(simFlowRep){
 }
 
 ##---------------------------------------##
+#Manual WGEN
+manualWGEN <- function(paramMC,
+                       paramAmount,
+                       obs.data,
+                       rep
+){
+  simRainList <- Amount_model(occur.param = paramMC, amount.param = paramAmount, rep = rep, obs.data = obs.data)
+  simRainRep <- getSimRainRep(SimRainList = simRainList)
+  
+  return(simRainRep)
+}
+
+simRaintoFDCModel <- function(paramMC, 
+                              paramAmount, obs.data, 
+                              rep,
+                              paramGR4J, virObsFlow
+){
+  #make sim rain
+  simRainRep <- manualWGEN(paramMC, paramAmount, obs.data, rep) #Get Rainfall replicates
+  ##Get SimFlow Rep
+  simFlowRep <- getSimFlowRep(simRainRep = simRainRep, paramGR4J = paramGR4J)
+  #Plot FDC
+  plotFlowDurationCurve(simFlowRep = simFlowRep, virObsFlow = virObsFlow, option = "withCILimit")
+}

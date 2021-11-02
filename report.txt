@@ -1,0 +1,14 @@
+gamma distribution behavior
+lower gamma : skew to low value; higher gamma tend to high value; gamma = 5 on ward start to have bell shape like normal distribution
+
+hihger beta (scale parameter) >>> Lower value sample
+higher alpha (shape parameter) >>> skew to right >>> more higher values in distribution
+
+increase both beta and alpha will slow down the skew to right process
+
+-run GR4J with flow stats
+-
+
+
+Alpha Case: +1; +10, alpha increases >>> skew to the right >>> more toward high flow values
+Beta Case: +1; +10, beta increases

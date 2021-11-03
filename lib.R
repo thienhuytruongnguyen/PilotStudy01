@@ -425,7 +425,7 @@ getEffiReport <- function(outputGR4J,inputGR4J,#input data
 
 ##---------------------------------------##
 ##Getting rain and PET data from URL
-getWeatherData <- function(whichStation,start,finish){
+getWeatherData <- function(nearestStation,start,finish){
   require(tidyverse)
   require(sf)
   whichStation = list(
@@ -468,14 +468,18 @@ getNearestWeatherStation <- function(flowSiteList,weatherSiteList,whichSite = 1)
   #calculate pairwise distances between points
   d <- gDistance(sp.merg, byid=T)
   
-  #Find second shortest distance (closest distance is of point to itself, therefore use second shortest)
-  min.d <- apply(d, 1, function(x) order(x, decreasing=F)[2])
+  #sort nearest silo station
+  sort.d <- sort(d[1,2:length(d[,1])], index = TRUE)
   
+  #List of 5 nearest SILO station
+  nearestStationList <- weatherSiteList[sort.d$ix[1:5],]
+  
+  #get first silo station info
+  infoSilo <- nearestStationList[1,]
   #Result
-  newdata <- cbind(merg, merg[min.d,], apply(d, 1, function(x) sort(x, decreasing=F)[2]))
-  nearestStationNumber<-as.numeric(newdata[1,4])
+  nearestStationNumber<-as.numeric(infoSilo[1,1])
   nearestStationNumber<-as.character(nearestStationNumber)
-  return(nearestStationNumber)
+  return(list(nearestStationNumber,infoSilo))
 }
 ##---------------------------------------##
 ##Get Sim Rain
@@ -561,4 +565,210 @@ simRaintoFDCModel <- function(paramMC,
   simFlowRep <- getSimFlowRep(simRainRep = simRainRep, paramGR4J = paramGR4J)
   #Plot FDC
   plotFlowDurationCurve(simFlowRep = simFlowRep, virObsFlow = virObsFlow, option = "withCILimit")
+}
+
+
+# # create index partition of each month, e.g. i.mm[[1]] = c(1,2,3...,31,366,367,...) for Jan; i.mm[[2]]=c(32,33,...)
+# # input: dat - observed data vector of dates as string values
+# # output is list of length 12 with integer vectors giving indices for relevant months
+getMonthlyPartition=function(dat){
+  nDy=length(dat) # total number of days in observation record
+  dd=rep(0,nDy);mm=rep(0,nDy);yy=rep(0,nDy)  # MAKE EMPTY VECTORS TO STORE DATE INFORMATION SEPARATELY
+  for(i in 1:nDy){
+    temp=strsplit(as.character(dat[i]),"/")[[1]]  #delimiter is "/" today
+    dd[i]=as.integer(temp[1])
+    mm[i]=as.integer(temp[2])
+    yy[i]=as.integer(temp[3])
+  }
+  ind=vector(12,mode="list")
+  for(m in 1:12) ind[[m]]=which(mm%in%m) #all years
+  return(ind)
+}
+
+# create index partition of each month, year and month-year
+# e.g. i.mm[[1]] = c(1,2,3...,31,366,367,...) for Jan; i.mm[[2]]=c(32,33,...)
+#      i.yy[[1]] = c(1,2,3...365)
+#      i.ym[[1]][[1]] = c(1,2,...,31) for Jan in year 1
+# input: dat - observed data vector of dates as string values
+#        CLI - object with climate state information
+# output is object with components i.mm i.yy i.ym
+makeObsDates=function(dat,CLI=NULL){
+  print(paste(Sys.time(),"Start",match.call()[1]))
+  nDy=length(dat) # total number of days in observation record
+  dd=rep(0,nDy);mm=rep(0,nDy);yy=rep(0,nDy)  # MAKE EMPTY VECTORS TO STORE DATE INFORMATION SEPARATELY
+  for(i in 1:nDy){
+    temp=strsplit(as.character(dat[i]),"-")[[1]]  #delimiter is "/" today
+    dd[i]=as.integer(temp[3])
+    mm[i]=as.integer(temp[2])
+    yy[i]=as.integer(temp[1])
+  }
+  # indices for each month
+  i.mm=vector(12,mode="list")
+  for(m in 1:12) i.mm[[m]]=which(mm%in%m) #all years
+  # indices for each year
+  stYr=yy[1]
+  fnYr=yy[nDy]
+  years=stYr:fnYr
+  nYr=fnYr-stYr+1
+  i.yy=vector(nYr,mode="list")
+  for(Y in 1:nYr) i.yy[[Y]]=which(yy%in%years[Y]) # all years
+  # indices for each unique year-month
+  i.ym=vector(nYr,mode="list") # CREATE YEAR-MONTH INDICES
+  for(Y in 1:nYr){
+    i.ym[[Y]]=vector(12,mode="list")
+    for(m in 1:12){
+      i.ym[[Y]][[m]]=i.yy[[Y]][i.yy[[Y]]%in%i.mm[[m]]]
+    }
+  }
+  
+  # construction partitions, base "partition" is "all", which means there is no partition at all
+  i.part=NULL
+  for(Y in 1:nYr) i.part[["all"]]=which(yy%in%years) # all years
+  i.mpart=NULL # this is a monthly index lookup of length matching ipart (a lookup of a lookup)
+  
+  for(m in 1:12)  i.mpart[["all"]][[m]]=which(mm[i.part[["all"]]]%in%m) # all years
+  if(!is.null(CLI)){ #there is climate state information to partition the years
+    
+    for(Y in 1:nYr) i.part[["pos"]]=which(yy%in%CLI$yy.pos) # CLI positive
+    for(Y in 1:nYr) i.part[["neg"]]=which(yy%in%CLI$yy.neg) # CLI negative
+    
+    ###############bug fix here
+    for(m in 1:12)  i.mpart[["pos"]][[m]]=i.part[["pos"]][which(mm[i.part[["pos"]]]%in%m)] # CLI positive
+    for(m in 1:12)  i.mpart[["neg"]][[m]]=i.part[["neg"]][which(mm[i.part[["neg"]]]%in%m)] # CLI negative
+  }
+  
+  # this is needed for hierarchical model at annual scale, other indices are at daily scale
+  # need to rethink the naming convention i.d.ypart (length 129x365) i.m.ypart (length 129x12) i.a.ypart (length 129), similar for i.d.mpart, i.m.mpart
+  i.ypart=NULL;i.ypart[["all"]]=1:nYr
+  if(!is.null(CLI)){ #there is climate state information to partition the years
+    for(Y in 1:nYr) i.ypart[["pos"]]=which(years%in%CLI$yy.pos) # CLI positive - annual timescale
+    for(Y in 1:nYr) i.ypart[["neg"]]=which(years%in%CLI$yy.neg) # CLI negative
+  }
+  
+  obsDate=list(i.mm=i.mm,i.yy=i.yy,i.ym=i.ym,nYr=nYr,nDy=nDy,years=years,i.part=i.part,i.mpart=i.mpart,i.ypart=i.ypart,CLI=CLI)
+  print(paste(Sys.time(),"Fin",match.call()[1]))
+  return(obsDate)
+}
+
+# Create indices based on dates for observed data
+getDates=function(dat){
+  nDy=length(dat) # total number of days in observation record
+  dd=rep(0,nDy);mm=rep(0,nDy);yy=rep(0,nDy)  # MAKE EMPTY VECTORS TO STORE DATE INFORMATION SEPARATELY
+  for(i in 1:nDy){
+    temp=strsplit(as.character(dat[i]),"/")[[1]]  #delimiter is "/" today
+    dd[i]=as.integer(temp[1])
+    mm[i]=as.integer(temp[2])
+    yy[i]=as.integer(temp[3])
+  }
+  jul=rep(0,nDy);julf=rep(0,nDy) # julian day and julian day fraction
+  k=0
+  if(isLeap(yy[1])){plusLeapDay=1}else{plusLeapDay=0}
+  jul[1]=k;julf[1]=k
+  for(i in 2:nDy){
+    if(yy[i]!=yy[i-1]){# new year so reset counter
+      k=0
+      if(isLeap(yy[i])){plusLeapDay=1}else{plusLeapDay=0}
+    }else{
+      k=k+1
+    }
+    jul[i]=k
+    julf[i]=k/(365+plusLeapDay)
+  }
+  return(list(dd=dd,mm=mm,yy=yy,jul=jul,julf=julf,nDy=nDy))
+}
+###################################################
+##Get annual return period
+getAnnualRetInt <- function(dat){
+  n <- length(dat) #number of events
+  P <- data.frame(matrix(NA,nrow = length(dat), ncol = 4))
+  colnames(P) <- c("value", "Depth", "Rank", "Annual_Return_Period")
+  P[,1] <- dat#get dat value
+  P[,2] <- sort(P[,1],decreasing = TRUE) #sort dat value in terms of magnitude
+  P[,3] <- 1:nrow(P) #rank
+  P[,4] <- (nrow(P)+1)/P[,3] #calculate return interval
+  return(P[,c(4,2)])
+}
+
+##GEt annual return period rep
+getAnnualRetIntRep <- function(simDatRep){
+  
+  repRetInt <- list()
+  
+  for (i in 1:ncol(simDatRep)){
+    repRetInt[[i]] <- getAnnualRetInt(simDatRep[,i])
+  }
+  
+  return(repRetInt)
+}
+
+#---------------------------------
+##Get annual maxima and plot
+getAnnualMaxima <- function(indObsDate,
+                            value){
+  
+  annualMaxima <- rep(0,length(indObsDate$i.yy))
+  for (i in 1:length(annualMaxima)){
+    annualMaxima[i] <- max(value[indObsDate$i.yy[[i]]])
+  }
+  return(annualMaxima)
+}
+
+compareAnnualMaxima <- function(indObsDate,
+                                obsRain,
+                                simRainRep){
+  #Observed Annual maxima
+  obsAnnualMaxima <- getAnnualMaxima(indObsDate = indObsDate, value = obsRain)
+  
+  #Simulated Annual maxima
+  simAnnualMaxima <- data.frame(matrix(NA, nrow = length(obsAnnualMaxima), ncol = ncol(simRainRep)))
+  
+  for (i in 1: ncol(simAnnualMaxima)){
+    simAnnualMaxima[,i] <- getAnnualMaxima(indObsDate = indObsDate, value = simRainRep[,i])
+  }
+  
+  #get return interval obsannualMaxima
+  annualRetInt_obsAnnualMaxima <- getAnnualRetInt(obsAnnualMaxima)
+  
+  #get return interval simAnnualMaxima
+  annualRetInt_simAnnualMaxima <- getAnnualRetIntRep(simAnnualMaxima)
+  
+  #get prob limit
+  #Extract 1st ranked to a dataframe
+  firstRank <- data.frame(matrix(NA,nrow = length(annualRetInt_simAnnualMaxima[[1]]$Depth),ncol = ncol(simRainRep)))
+  for (i in 1:ncol(firstRank)){
+    firstRank[,i] <- annualRetInt_simAnnualMaxima[[i]]$Depth
+  }
+  
+  
+  #get probability limit and median 90%
+  probLimLower <- apply(firstRank,1,percentile5)
+  probLimUpper <- apply(firstRank,1,percentile95)
+  probLimMedian <- apply(firstRank,1,percentile50)
+  
+  
+  #get Exceedance probability for CI limits and median
+  lowerExceedProb <- getAnnualRetInt(dat = probLimLower)
+  upperExceedProb <- getAnnualRetInt(dat = probLimUpper)
+  medianExceedProb <- getAnnualRetInt(dat = probLimMedian)
+  
+  #Start plot
+  
+  
+  plot(annualRetInt_obsAnnualMaxima, log="x",pch=4, lwd = 1, ann = FALSE, xaxt ="n", yaxt="n")
+  title(ylab = "Depth (mm)", xlab = "Annual Return Period", line = 2.5)
+  
+  xticks = c(seq(1,2,0.2),5, 10, 20)
+  yticks = seq(0,format(round(max(annualRetInt_obsAnnualMaxima),-1)),40)
+  axis(side = 1, at = xticks)
+  axis(side = 2, at = yticks)
+  abline(h = seq(0, 200, 40), v = xticks, col = "lightgray", lty = 3)
+  
+  legend("topleft", legend = c("Obs","Sim. 90% PL", "Sim. Median"),
+         col = c("black","red","red"), pch = c(4,NA,1), lty = c(0,3,0), lwd = 1, cex = 0.8)
+  #Line CI boundary and median
+  lines(lowerExceedProb, col="red",lwd=1, lty=3)                    
+  lines(upperExceedProb, col="red",lwd=1, lty=3)
+  points(medianExceedProb, col="red",cex=0.7, pch = 1)
+  
+  
 }

@@ -1,20 +1,23 @@
 ##Get work directory
 runStart <- Sys.time()
 WD<-getwd()
-pdf(file = paste(WD,"/FDC_results/Fixed/","FDC.pdf",sep = ""), 
+pdf(file = paste(WD,"/FDC_results/Fixed/","AnnualMaxvsFDC.pdf",sep = ""), 
     width = 8.25, height = 11.75)
-par(mfrow=c(5,2))
-for (i in 1:10) {
+par(mfrow=c(2,2))
+
+catchmentParam <- data.frame(matrix(NA,nrow = 25, ncol = 13))
+colnames(catchmentParam) <- c("ID","Lat","Long","Juradiction","Area(Km^2)","Start","End","x1","x2","x3","x4","NSE","NearestSilo")
+flowSiteList <- read.table("siteList.txt",header=T,sep = "",dec = ".")
+weatherSiteList <- getWeatherSiteList()
+for (i in 1:25) {
   ##Get site list
-  flowSiteList <- read.table("siteList.txt",header=T,sep = "",dec = ".")
-  weatherSiteList <- getWeatherSiteList()
   whichSite <- flowSiteList[i,]##1st row of flow site list
-  
+  catchmentParam[i,1:7] <- whichSite[,1:7]
   ##Find Nearest Weather station to Site
   nearestStation <- getNearestWeatherStation(flowSiteList, weatherSiteList, whichSite = whichSite$ID)
-  
+  catchmentParam[i,13] <- nearestStation[[1]]
   ##Getting rain and PET data from URL
-  siloData <- getWeatherData(whichStation, start = whichSite$start, finish = whichSite$finish)
+  siloData <- getWeatherData(nearestStation = nearestStation[[1]], start = whichSite$start, finish = whichSite$finish)
   
   ##Get flow, rain and evap data
   RainDat <- siloData[,c(2,3)]; colnames(RainDat) = c("Date_Time","Value");
@@ -27,8 +30,13 @@ for (i in 1:10) {
   warmup <- 24 #months, set warm-up period, airGR prefer more than 12 months
   paramGR4J <- getParamGR4J(inputGR4J = inputGR4J, start = start, end = end, warmup = warmup)
   
+  ##Get NSE report and store parameters
+  catchmentParam[i,8:11] <- format(round(paramGR4J[[1]],3)) 
+  
   ##Run GR4J model
   outputGR4J <- runGR4J(paramGR4J)
+  effiReport <- getEffiReport(outputGR4J = outputGR4J, inputGR4J = inputGR4J, start = start, end = end, warmup = warmup)
+  catchmentParam[i,12] <- format(round(effiReport$CritValue,3))
   
   #----------------------------------------------------#
   
@@ -37,7 +45,7 @@ for (i in 1:10) {
   SimRainList <- getSimRain(RainDat, rep = rep, mod = "gama")
   
   ##Get SimRain Rep
-  simRainRep <- getSimRainRep(SimRainList)
+  simRainRep<- getSimRainRep(SimRainList)
   
   ##Get SimFlow Rep
   simFlowRep <- getSimFlowRep(simRainRep = simRainRep, paramGR4J = paramGR4J)
@@ -45,17 +53,35 @@ for (i in 1:10) {
   #Get virtual observed flow
   virObsFlow <- outputGR4J$Qsim
   
+  #Plot return interval
+  indObsDate <- makeObsDates(RainDat$Date_Time)
+  station <- paste(" ID:",nearestStation[[2]]$station, "Name:", as.character(nearestStation[[2]]$name), "\n", "Juradiction:", nearestStation[[2]]$state, "Lat:", nearestStation[[2]]$latitude, "Long:", nearestStation[[2]]$longitude, "Elevation:", nearestStation[[2]]$elevation)
+  
+  compareAnnualMaxima(indObsDate = indObsDate, obsRain = RainDat$Value, simRainRep = simRainRep)
+  
+  mtext(station, 3, 0, cex=0.5, adj=0, padj = -0.3)
+  
   #Plot FDC
-  station <- paste("ID",whichSite[1],"Lat:",whichSite[2],"Long:",whichSite[3],"Juradiction:",whichSite[4],"Area:",
-                   whichSite[5],"From:",start,"To:",end, sep = " ")
+  outlet <- paste(" ID:",whichSite[1],"Juradiction:",whichSite[4],"Area:",
+                   whichSite[5],"km^2","\n","Lat:",whichSite[2],"Long:",whichSite[3],"From:",start,"To:",end,sep = " ")
+  
   plotFlowDurationCurve(simFlowRep = simFlowRep, virObsFlow = virObsFlow, option = "withCILimit")
-  mtext((paste(station)), 3, 0, cex=.9, adj=0, padj=-.3)
-}  
+  
+  mtext(outlet, 3, 0, cex=.5, adj=0, padj=-.3)
+  
+}
+##Write parameters table with site info
+# ttable <- gridExtra::tableGrob(catchmentParam, rows=NULL, theme = gridExtra::ttheme_default(base_size = 8.5))
+# grid::grid.draw(ttable)
+write.csv(catchmentParam, file = "catchmentInfo.csv")
     
-    dev.off()
+#########
+dev.off()
 runEnd <- Sys.time()
-
 runEnd - runStart
+#########
+    
+
 
 # #Get exceedance probability for sim flow reps
 # simExceedProbRep <- getExceedProbRep(simFlowRep = simFlowRep)
@@ -151,8 +177,6 @@ for (i in 1:30){
 exceedProbRep <- getExceedProbRep(exceedRep)
 
 
-
-##Get annual maxima and plot
 
 
 ##Sum of squared error SQE

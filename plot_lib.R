@@ -455,7 +455,7 @@ plotFlowDurationCurve <- function (simFlowRep,
       plot(virObsExceedProb, log="y",type="l",ylim = ylim, lwd = 2, ann = FALSE)
       title(ylab = ylab, xlab = xlab, line = 2.5)
       legend("topright", legend = c("VirObs Flow","Sim. 90% PL", "Sim. Median", "in Log Scale"),
-             col = c("black","red","darkblue"), lty = c(1,2,3,0), lwd = 2, cex = 0.8)
+             col = c("black","red","darkblue"), lty = c(1,2,3,0), lwd = 1, cex = 0.8)
       #plot CI region
       xpoly = c(rev(lowerExceedProb$Exceedance_Probability), upperExceedProb$Exceedance_Probability)
       ypoly = c(rev(upperExceedProb$Flow), lowerExceedProb$Flow)

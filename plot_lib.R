@@ -303,7 +303,7 @@ plotFlowDurationCurve <- function (simFlowRep,
                                    virObsFlow, 
                                    option = "RepVSVirObs"){ #"RepVSVirObs", "withCILimit"
   
-  if (option == "RepVSVirObs"){
+  if (option == "RepVSVirObs"){ ##Not fix for 0 flow yet. will fit if needed in future, to fix see code in "withCILimit" option
     
     #Get exceedance probability for sim flow reps
     simExceedProbRep <- getExceedProbRep(simFlowRep = simFlowRep)
@@ -351,12 +351,21 @@ plotFlowDurationCurve <- function (simFlowRep,
       if (any(simFlowRep==0)==TRUE){
         print("In plotFlowDurationCurve(simFlowRep = simFlowRep, virObsFlow = virObsFlow, option = `RepVSVirObs`) : zeroes detected in 'simFlowRep': some plots in the log space will not be created using all time-steps")
         
-        #get probability limit and median 90%
-        probLimLower <- apply(simFlowRep,1,percentile5)
-        probLimUpper <- apply(simFlowRep,1,percentile95)
-        probLimMedian <- apply(simFlowRep,1,percentile50)
+        #Rank simulated flow
+        simExceedProbRep <- getExceedProbRep(simFlowRep = simFlowRep)#Rank First time
         
-        #get Exceedance probability for CI limits and median
+        #Extra 1st ranked to a dataframe
+        firstRank <- data.frame(matrix(NA,nrow = length(simExceedProbRep[[1]]$Flow),ncol = ncol(simFlowRep)))
+        for (i in 1:ncol(firstRank)){
+          firstRank[,i] <- simExceedProbRep[[i]]$Flow
+        }
+        
+        #get probability limit and median 90%
+        probLimLower <- apply(firstRank,1,percentile5)
+        probLimUpper <- apply(firstRank,1,percentile95)
+        probLimMedian <- apply(firstRank,1,percentile50)
+        
+        #get Exceedance probability for CI limits and median (Rank Second time)
         lowerExceedProb <- getExceedProb(flow = probLimLower)
         upperExceedProb <- getExceedProb(flow = probLimUpper)
         medianExceedProb <- getExceedProb(flow = probLimMedian)
@@ -407,10 +416,21 @@ plotFlowDurationCurve <- function (simFlowRep,
     } else{ #Get exceedance probability for virtual observed flow
       virObsExceedProb <- getExceedProb(flow = virObsFlow)
       
+      #Rank simulated flow
+      simExceedProbRep <- getExceedProbRep(simFlowRep = simFlowRep)#Rank First time
+      
+      #Extract 1st ranked to a dataframe
+      firstRank <- data.frame(matrix(NA,nrow = length(simExceedProbRep[[1]]$Flow),ncol = ncol(simFlowRep)))
+      for (i in 1:ncol(firstRank)){
+        firstRank[,i] <- simExceedProbRep[[i]]$Flow
+      }
+      
+      
       #get probability limit and median 90%
-      probLimLower <- apply(simFlowRep,1,percentile5)
-      probLimUpper <- apply(simFlowRep,1,percentile95)
-      probLimMedian <- apply(simFlowRep,1,percentile50)
+      probLimLower <- apply(firstRank,1,percentile5)
+      probLimUpper <- apply(firstRank,1,percentile95)
+      probLimMedian <- apply(firstRank,1,percentile50)
+      
       
       #get Exceedance probability for CI limits and median
       lowerExceedProb <- getExceedProb(flow = probLimLower)

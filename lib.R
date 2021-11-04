@@ -337,10 +337,12 @@ makeInputGR4J <- function(
 getParamGR4J <- function(inputGR4J,#observed input data
                           start="1970-01-01",#Start of period
                           end="2019-02-28",#End of period
-                          warmup
+                          warmup,
+                         parameter="unknown", knownParam #or "known"
                           ){
   require (airGR)
   require (lubridate)
+  
   #get start and end of run and warmup period
   start <- as.Date(start,tryFormats = "%d/%m/%Y"); end <- as.Date(end,tryFormats = "%d/%m/%Y")
   from <- start %m+% months(warmup) ; to <- end
@@ -358,19 +360,25 @@ getParamGR4J <- function(inputGR4J,#observed input data
   RunOptions <- airGR::CreateRunOptions(FUN_MOD = airGR::RunModel_GR4J,
                                         InputsModel = InputsModel, IndPeriod_Run = Ind_Run,
                                         IniStates = NULL, IniResLevels = NULL, IndPeriod_WarmUp = Ind_WarmUp)
-  
-  #InputsCrit object
-  InputsCrit <- airGR::CreateInputsCrit(FUN_CRIT = airGR::ErrorCrit_NSE, InputsModel = InputsModel, RunOptions = RunOptions, VarObs = "Q", Obs = inputGR4J$Q[Ind_Run])
-  
-  #CalibOptions object
-  CalibOptions <- airGR::CreateCalibOptions(FUN_MOD = airGR::RunModel_GR4J, FUN_CALIB = airGR::Calibration_Michel)
-  
-  #CALIBRATION
-  OutputsCalib <- airGR::Calibration_Michel(InputsModel = InputsModel, RunOptions = RunOptions,
-                                            InputsCrit = InputsCrit, CalibOptions = CalibOptions,
-                                            FUN_MOD = airGR::RunModel_GR4J)
-  #Get GR4J parameter
-  Param <- OutputsCalib$ParamFinalR
+  if (parameter == "unknown"){
+    #InputsCrit object
+    InputsCrit <- airGR::CreateInputsCrit(FUN_CRIT = airGR::ErrorCrit_NSE, InputsModel = InputsModel, RunOptions = RunOptions, VarObs = "Q", Obs = inputGR4J$Q[Ind_Run])
+    
+    #CalibOptions object
+    CalibOptions <- airGR::CreateCalibOptions(FUN_MOD = airGR::RunModel_GR4J, FUN_CALIB = airGR::Calibration_Michel)
+    
+    #CALIBRATION
+    OutputsCalib <- airGR::Calibration_Michel(InputsModel = InputsModel, RunOptions = RunOptions,
+                                              InputsCrit = InputsCrit, CalibOptions = CalibOptions,
+                                              FUN_MOD = airGR::RunModel_GR4J)
+    #Get GR4J parameter
+    Param <- OutputsCalib$ParamFinalR
+  } else if (parameter == "known"){
+    
+    Param <- vector(length = 4); Param[1] <- knownParam[,1]; Param[2] <- knownParam[,2]; Param[3] <- knownParam[,3]; Param[4] <- knownParam[,4]
+    
+  }
+
   return(list(Param,Ind_Run,InputsModel,RunOptions))
 }
 ##---------------------------------------##
@@ -713,62 +721,59 @@ getAnnualMaxima <- function(indObsDate,
   return(annualMaxima)
 }
 
-compareAnnualMaxima <- function(indObsDate,
-                                obsRain,
-                                simRainRep){
-  #Observed Annual maxima
-  obsAnnualMaxima <- getAnnualMaxima(indObsDate = indObsDate, value = obsRain)
+
+###############################
+##sum of squares Error
+getSSE <- function(obs, sim){
+  err <- data.frame(matrix(NA, nrow = nrow(sim), ncol = ncol(sim)))
+  SSE <- rep(0,ncol(sim))
+  for (i in 1:ncol(err)){
+    err[,i] <- sim[,i] - obs
+    SSE[i] <- sum(err[,i]^2)
+  }
+  SSE <- mean(SSE)
+  return(SSE)
+} 
+
+##RMSE 
+getRMSE <- function(obs, sim){
+  err <- data.frame(matrix(NA, nrow = nrow(sim), ncol = ncol(sim)))
+  RMSE <- rep(0,ncol(sim))
+  for (i in 1:ncol(err)){
+    err[,i] <- sim[,i] - obs
+    RMSE[i] <- (sum(err[,i]^2)/length(obs))^(1/2)
+  }
+  RMSE <- mean(RMSE)
+  return(RMSE)
+}
+
+##NSE
+getNSE <- function(obs, sim){
   
-  #Simulated Annual maxima
-  simAnnualMaxima <- data.frame(matrix(NA, nrow = length(obsAnnualMaxima), ncol = ncol(simRainRep)))
+  squareErr <- data.frame(matrix(NA, nrow = nrow(sim), ncol = ncol(sim)))
+  squareMeanErr <- (obs-mean(obs))^2
+  NSE <- rep(0,ncol(sim))
   
-  for (i in 1: ncol(simAnnualMaxima)){
-    simAnnualMaxima[,i] <- getAnnualMaxima(indObsDate = indObsDate, value = simRainRep[,i])
+  for (i in 1:ncol(sim)){ #for each rep
+    squareErr[,i] <- (sim[,i] - obs)^2
+    NSE[i] <- 1 - (sum(squareErr[,i])/sum(squareMeanErr))
+  }
+  NSE <- mean(NSE)
+  return(NSE)
+}
+
+##get NSE for flow duration curve
+getNSE_FDC <- function(obs,sim){
+  
+  #Get exceedance probability
+  obsExceedProb <- getExceedProb(obs)
+  simExceedProb <- getExceedProbRep(sim)
+  
+  simExceedProbDF <- data.frame(matrix(NA,nrow = length(simExceedProb[[1]]$Flow),ncol = ncol(sim)))
+  for (i in 1:ncol(simExceedProbDF)){
+    simExceedProbDF[,i] <- simExceedProb[[i]]$Flow
   }
   
-  #get return interval obsannualMaxima
-  annualRetInt_obsAnnualMaxima <- getAnnualRetInt(obsAnnualMaxima)
-  
-  #get return interval simAnnualMaxima
-  annualRetInt_simAnnualMaxima <- getAnnualRetIntRep(simAnnualMaxima)
-  
-  #get prob limit
-  #Extract 1st ranked to a dataframe
-  firstRank <- data.frame(matrix(NA,nrow = length(annualRetInt_simAnnualMaxima[[1]]$Depth),ncol = ncol(simRainRep)))
-  for (i in 1:ncol(firstRank)){
-    firstRank[,i] <- annualRetInt_simAnnualMaxima[[i]]$Depth
-  }
-  
-  
-  #get probability limit and median 90%
-  probLimLower <- apply(firstRank,1,percentile5)
-  probLimUpper <- apply(firstRank,1,percentile95)
-  probLimMedian <- apply(firstRank,1,percentile50)
-  
-  
-  #get Exceedance probability for CI limits and median
-  lowerExceedProb <- getAnnualRetInt(dat = probLimLower)
-  upperExceedProb <- getAnnualRetInt(dat = probLimUpper)
-  medianExceedProb <- getAnnualRetInt(dat = probLimMedian)
-  
-  #Start plot
-  
-  
-  plot(annualRetInt_obsAnnualMaxima, log="x",pch=4, lwd = 1, ann = FALSE, xaxt ="n", yaxt="n")
-  title(ylab = "Depth (mm)", xlab = "Annual Return Period", line = 2.5)
-  
-  xticks = c(seq(1,2,0.2),5, 10, 20)
-  yticks = seq(0,format(round(max(annualRetInt_obsAnnualMaxima),-1)),40)
-  axis(side = 1, at = xticks)
-  axis(side = 2, at = yticks)
-  abline(h = seq(0, 200, 40), v = xticks, col = "lightgray", lty = 3)
-  
-  legend("topleft", legend = c("Obs","Sim. 90% PL", "Sim. Median"),
-         col = c("black","red","red"), pch = c(4,NA,1), lty = c(0,3,0), lwd = 1, cex = 0.8)
-  #Line CI boundary and median
-  lines(lowerExceedProb, col="red",lwd=1, lty=3)                    
-  lines(upperExceedProb, col="red",lwd=1, lty=3)
-  points(medianExceedProb, col="red",cex=0.7, pch = 1)
-  
-  
+  #Calculate NSE
+  NSE <- getNSE(obs = obsExceedProb$Flow, sim = simExceedProbDF)
 }

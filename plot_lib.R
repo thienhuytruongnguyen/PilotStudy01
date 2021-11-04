@@ -110,7 +110,7 @@ monthlytotal_stats_plot<-function
                    "Monthly totals (mm): 95th percentile","Monthly no. wet days: means","Monthly no. wet days: std dev")
   title.plot1 <- c("mean monhtly total rainfall (mm)","std dev monhtly total rainfall (mm)","5th percentile monhtly total rainfall (mm)",
                    "95th percentile monhtly total rainfall (mm)","mean monthly number of wet day","std dev monthly number of wet day")
-  par(mfrow=c(3,2))
+  #par(mfrow=c(2,2))
   for (i in 1:6){
     
     if (type == "boxplot"){
@@ -208,22 +208,22 @@ wetday_monthlystats_plot <- function
   }
   
   ##Start plotting
-  title_plot1 <- c("Monthly wet day amounts (mm): means","Monthly wet day amounts (mm): skew","Monthly wet day amounts (mm): std dev")
-  title_plot_2 <- c("mean montly wet day amounts (mm)","skew montly wet day amounts (mm)","std dev montly wet day amounts (mm)")
-  par(mfrow = c(2,2))
+  title_plot1 <- c("Monthly wet day amounts (mm): means","Monthly wet day amounts: skew","Monthly wet day amounts (mm): std dev")
+  title_plot_2 <- c("mean montly wet day amounts (mm)","skew montly wet day amounts","std dev montly wet day amounts (mm)")
+  #par(mfrow = c(2,2))
   for (i in 1:3){
     if (type == "boxplot"){
       ##Type 1
       ##If statements are used to select the x and y limit of the plot
-      if (min(pred.stats[[i]])<min(t(obs.monthwetday.stats[i,]))){
-        min.range = min(pred.stats[[i]])
-      } else {min.range = min(t(obs.monthwetday.stats[i,]))}
-      if (max(pred.stats[[i]])>max(t(obs.monthwetday.stats[i,]))){
-        max.range = max(pred.stats[[i]])
-      } else {max.range = max(t(obs.monthwetday.stats[i,]))}
+      # if (min(pred.stats[[i]])<min(t(obs.monthwetday.stats[i,]))){
+      #   min.range = min(pred.stats[[i]])
+      # } else {min.range = min(t(obs.monthwetday.stats[i,]))}
+      # if (max(pred.stats[[i]])>max(t(obs.monthwetday.stats[i,]))){
+      #   max.range = max(pred.stats[[i]])
+      # } else {max.range = max(t(obs.monthwetday.stats[i,]))}
       ##Box plot function with modifiable whisker range 
       boxplot.ext(pred.stats[[i]],
-                  ylim=c(min.range,max.range),
+                  
                   whiskersProb = c(0.05,0.95))
       ##Point the observed data on the plot
       points(t(obs.monthwetday.stats[i,]),col="red",pch=3)
@@ -471,4 +471,63 @@ plotFlowDurationCurve <- function (simFlowRep,
   }
   
 }
-
+#get return interval of annual maxima and plot
+compareAnnualMaxima <- function(indObsDate,
+                                obs,
+                                simRep){
+  #Observed Annual maxima
+  obsAnnualMaxima <- getAnnualMaxima(indObsDate = indObsDate, value = obs)
+  
+  #Simulated Annual maxima
+  simAnnualMaxima <- data.frame(matrix(NA, nrow = length(obsAnnualMaxima), ncol = ncol(simRep)))
+  
+  for (i in 1: ncol(simAnnualMaxima)){
+    simAnnualMaxima[,i] <- getAnnualMaxima(indObsDate = indObsDate, value = simRep[,i])
+  }
+  
+  #get return interval obsannualMaxima
+  annualRetInt_obsAnnualMaxima <- getAnnualRetInt(obsAnnualMaxima)
+  
+  #get return interval simAnnualMaxima
+  annualRetInt_simAnnualMaxima <- getAnnualRetIntRep(simAnnualMaxima)
+  
+  #get prob limit
+  #Extract 1st ranked to a dataframe
+  firstRank <- data.frame(matrix(NA,nrow = length(annualRetInt_simAnnualMaxima[[1]]$Depth),ncol = ncol(simRep)))
+  for (i in 1:ncol(firstRank)){
+    firstRank[,i] <- annualRetInt_simAnnualMaxima[[i]]$Depth
+  }
+  
+  
+  #get probability limit and median 90%
+  probLimLower <- apply(firstRank,1,percentile5)
+  probLimUpper <- apply(firstRank,1,percentile95)
+  probLimMedian <- apply(firstRank,1,percentile50)
+  
+  
+  #get Exceedance probability for CI limits and median
+  lowerExceedProb <- getAnnualRetInt(dat = probLimLower)
+  upperExceedProb <- getAnnualRetInt(dat = probLimUpper)
+  medianExceedProb <- getAnnualRetInt(dat = probLimMedian)
+  
+  #Start plot
+  
+  
+  plot(annualRetInt_obsAnnualMaxima, log="x",pch=4, lwd = 1, ann = FALSE, xaxt ="n", yaxt ="n")
+  title(ylab = "Depth (mm)", xlab = "Annual Return Period", line = 2.5)
+  
+  xticks = c(seq(1,2,0.2),5, 10, 20)
+  yticks = seq(0,format(round(max(annualRetInt_obsAnnualMaxima),-1)),40)
+  axis(side = 1, at = xticks)
+  axis(side = 2, at = yticks)
+  abline(h = seq(0, 200, 20), v = xticks, col = "lightgray", lty = 3)
+  
+  legend("topleft", legend = c("Obs","Sim. 90% PL", "Sim. Median"),
+         col = c("black","red","red"), pch = c(4,NA,1), lty = c(0,3,0), lwd = 1, cex = 0.8)
+  #Line CI boundary and median
+  lines(lowerExceedProb, col="red",lwd=1, lty=3)                    
+  lines(upperExceedProb, col="red",lwd=1, lty=3)
+  points(medianExceedProb, col="red",cex=0.7, pch = 1)
+  
+  
+}

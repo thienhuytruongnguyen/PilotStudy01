@@ -1,3 +1,5 @@
+##-----This script is used to fit the WGEN model and the GR4J model and run the rainfall-runoff simulation----##
+
 ##Get work directory
 runStart <- Sys.time()
 WD<-getwd()
@@ -176,9 +178,3 @@ for (i in 1:30){
 }
 exceedProbRep <- getExceedProbRep(exceedRep)
 
-
-
-
-##Sum of squared error SQE
-
-##Nash-Sutcliffe efficiency NSE

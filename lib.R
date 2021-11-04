@@ -750,15 +750,16 @@ getRMSE <- function(obs, sim){
 ##NSE
 getNSE <- function(obs, sim){
   
-  squareErr <- data.frame(matrix(NA, nrow = nrow(sim), ncol = ncol(sim)))
-  squareMeanErr <- (obs-mean(obs))^2
-  NSE <- rep(0,ncol(sim))
+  squareErr <- data.frame(matrix(NA, nrow = nrow(sim), ncol = ncol(sim))) #A matrix with rows = number variables, columns = number of replicates
+  squareMeanErr <- (obs-mean(obs))^2 #A vector of length = number of variables
+  NSE <- rep(0,ncol(sim)) # A vector of length = number of replicates
   
-  for (i in 1:ncol(sim)){ #for each rep
+  for (i in 1:ncol(sim)){ #for each replicates calculate the NSE 
     squareErr[,i] <- (sim[,i] - obs)^2
     NSE[i] <- 1 - (sum(squareErr[,i])/sum(squareMeanErr))
   }
-  NSE <- mean(NSE)
+  
+  NSE <- mean(NSE)#average the NSE of all replicates
   return(NSE)
 }
 

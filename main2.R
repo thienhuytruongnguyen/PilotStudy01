@@ -118,4 +118,5 @@ runEnd <- Sys.time()
 runEnd - runStart
 
 
-
+gama <- manipulate(plot(density(rgamma(100,a,b))),a=slider(1,100),b=slider(1,100))
+library(manipulate)

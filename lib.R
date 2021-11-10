@@ -29,6 +29,7 @@ occurr_stats <- function(monthlydata){
   n_ww = 0 #Number of ww events at site
   n_dd = 0 #Number of dd events at site
   n_wd = 0 #Number of wd events at site
+  
   for (i in 2:length(rain.only.month)){
     if (rain.only.month[i] > 0.1 && rain.only.month[i-1] <= 0.1){
       n_dw = n_dw + 1
@@ -46,6 +47,7 @@ occurr_stats <- function(monthlydata){
     #Calculate the conditional probability
     P_dw = n_dw/(n_dw+n_dd)
     P_ww = n_ww/(n_ww+n_wd)
+    
     #Unconditional probabilty
     Pie_w = P_dw/(1 + P_dw - P_ww)
     Pie_d = 1 - Pie_w
@@ -238,7 +240,7 @@ Amount_model <- function
         # Loop to generate rainfall amount for rainny day
         for(k in which(bin == 1)){
           
-          pred[k] <- rgamma(1,shape=amount.param[i,1],rate=amount.param[i,2]) # rexp is the exponential distribution sampling function
+          pred[k] <- rgamma(1, shape = amount.param[i, 1], rate = amount.param[i, 2]) # rexp is the exponential distribution sampling function
         }
         ls.monthly.simrain[[i]][,j] <- pred
       }
@@ -818,3 +820,63 @@ getNSE_FDC <- function(obs,sim){
   #Calculate NSE
   NSE <- getNSE(obs = obsExceedProb$Flow, sim = simExceedProbDF)
 }
+
+##-----------------------Spell Distribution--------------------------------#
+getDrySpell <- function(value,
+                        maxSpell = 10){
+  
+  #make binary series of wet and dry day
+  bin <- rep(0, length(value))
+  
+  for (i in which(value > 0)){
+    bin[i] <- 1
+  }
+  
+  #calculate wet and dry spells
+  spell <- rle(bin)
+  
+  #get dry spell
+  drySpell <- spell$lengths[which(spell$values==0)]
+  
+  #Totatl dry events
+  totalDryEvent <- length(drySpell)
+  
+  #Calculate dry spell distribution
+  drySpellDist <- rep(0, maxSpell)
+  
+  for (i in 1:maxSpell){
+    drySpellDist[i] <- length(drySpell[drySpell==i])/totalDryEvent
+  }
+  
+  return(drySpellDist)
+}
+
+##-------------------------------------------------------------------#
+getWetSpell <- function(value,
+                        maxSpell = 10){
+  
+  #make binary series of wet and dry day
+  bin <- rep(0, length(value))
+  
+  for (i in which(value > 0)){
+    bin[i] <- 1
+  }
+  
+  #calculate wet and dry spells
+  spell <- rle(bin)
+  
+  #get dry spell
+  wetSpell <- spell$lengths[which(spell$values==1)]
+  
+  #Totatl dry events
+  totalWetEvent <- length(wetSpell)
+  
+  #Calculate dry spell distribution
+  wetSpellDist <- rep(0, maxSpell)
+  
+  for (i in 1:maxSpell){
+    wetSpellDist[i] <- length(wetSpell[wetSpell==i])/totalWetEvent
+  }
+  
+  return(wetSpellDist)
+}  

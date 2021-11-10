@@ -112,8 +112,33 @@ for (i in 1:25) {
                option = "MoM")
   
   ##Get SimRain Rep
-  simRainRep<- getSimRainRep(SimRainList[[1]])
+  simRainRep <- getSimRainRep(SimRainList[[1]])
   
+  ##Write rainfall model parameters for the site
+  paramWGEN <- data.frame(matrix(NA, ncol = 4, nrow = 12))
+  colnames(paramWGEN) <- c("PDW","PWW","a","b")
+  
+  #Markov Chain Model parameter
+  paramWGEN[1:2] <- SimRainList[[2]][1:2]
+  
+  #Gama distribution barameter
+  paramWGEN[3:4] <- SimRainList[[3]]
+  
+  #Write to .csv file
+  write.csv(
+    paramWGEN,
+    file = paste(
+      WD,
+      "/WGENmodel_parameter_eachSite/",
+      "Site",
+      s,
+      "_",
+      whichSite$station,
+      ".csv",
+      sep = ""
+    ),
+    row.names = FALSE
+  )
   
   #------------------Get SimFlow Rep----------------------------------
 
@@ -252,3 +277,13 @@ runEnd <- Sys.time()
 runEnd - runStart
 
 
+
+  
+
+obsDrySpell <-
+  getDrySpell(value = RainDat$Value[indRainDate$i.mm[[1]]],
+              maxSpell = 10)
+
+obsWetSpell <-
+  getWetSpell(value = RainDat$Value[indRainDate$i.mm[[12]]],
+              maxSpell = 10)

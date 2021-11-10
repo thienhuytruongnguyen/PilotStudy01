@@ -46,7 +46,7 @@ for (i in 1:25) {
   SimRainList_MLE <- getSimRain(RainDat, rep = rep, mod = "gama", option = "MLE")
   
   ##Get SimRain Rep
-  simRainRep_MLE<- getSimRainRep(SimRainList_MLE)
+  simRainRep_MLE<- getSimRainRep(SimRainList_MLE[[1]])
   
   #------------------Rainfall Model MoM----------------------------------#
   ##Fit the WGEN model and Generate some rainfall replicates
@@ -54,7 +54,7 @@ for (i in 1:25) {
   SimRainList_MoM <- getSimRain(RainDat, rep = rep, mod = "gama", option = "MoM")
   
   ##Get SimRain Rep
-  simRainRep_MoM<- getSimRainRep(SimRainList_MoM)
+  simRainRep_MoM<- getSimRainRep(SimRainList_MoM[[1]])
   
   #------------------Runoff Model----------------------------------#
 
@@ -69,7 +69,7 @@ for (i in 1:25) {
   effiReport <- getEffiReport(outputGR4J = outputGR4J, inputGR4J = inputGR4J, start = start, end = end, warmup = warmup)
 
   ##Get SimFlow Rep
-  simFlowRep <- getSimFlowRep(simRainRep = simRainRep_MoM, paramGR4J = paramGR4J)
+  simFlowRep <- getSimFlowRep(simRainRep = simRainRep_MLE, paramGR4J = paramGR4J)
 
   #Get virtual observed flow
   virObsFlow <- outputGR4J$Qsim
@@ -81,9 +81,9 @@ for (i in 1:25) {
   #obs annual maxima
   obsAnnualMax <- getAnnualMaxima(indObsDate = indRainDate, value = RainDat$Value)
   #sim annual maxima
-  simAnnualMaxima <- data.frame(matrix(NA, nrow = length(obsAnnualMax), ncol = ncol(simRainRep)))
+  simAnnualMaxima <- data.frame(matrix(NA, nrow = length(obsAnnualMax), ncol = ncol(simRainRep_MLE)))
   for (i in 1: ncol(simAnnualMaxima)){
-    simAnnualMaxima[,i] <- getAnnualMaxima(indObsDate = indRainDate, value = simRainRep[,i])
+    simAnnualMaxima[,i] <- getAnnualMaxima(indObsDate = indRainDate, value = simRainRep_MLE[,i])
   }
   #get NSE annual maxima
   NSE_annualMaxima <- getNSE(obs = obsAnnualMax, sim = simAnnualMaxima)
@@ -97,7 +97,7 @@ for (i in 1:25) {
   ##Plot return interval for annual maximum rainfall
 
   #call plot function
-  compareAnnualMaxima(indObsDate = indRainDate, obs = RainDat$Value, simRep = simRainRep_MoM)
+  compareAnnualMaxima(indObsDate = indRainDate, obs = RainDat$Value, simRep = simRainRep_MLE)
 
   siloStation <- paste(" ID:",siloInfo$station, "Name:", as.character(siloInfo$name), "\n", "Juradiction:", siloInfo$state, "Lat:", siloInfo$latitude, "Long:", siloInfo$longitude, "Elevation:", siloInfo$elevation, "NSE:",NSE_annualMaxima, sep = " ")
   mtext(siloStation, 3, 0, cex=0.5, adj=0, padj = -0.3)
@@ -118,11 +118,11 @@ for (i in 1:25) {
    #Plot simulated vs observed rainfall stats
    RainDatFormat <- format_TimeSeries(RainDat)
   #MLE-----------
-   wetday_monthlystats_plot(RainDatFormat,SimRainList_MLE, type = "boxplot") #plot monthly wet day stats, type of plot can be "boxplot" or "errorbar"
-   monthlytotal_stats_plot(RainDatFormat,SimRainList_MLE, type = "boxplot") #plot monthly total stats, type of plot can be "boxplot" or "errorbar"
+   wetday_monthlystats_plot(RainDatFormat,SimRainList_MLE[[1]], type = "boxplot") #plot monthly wet day stats, type of plot can be "boxplot" or "errorbar"
+   monthlytotal_stats_plot(RainDatFormat,SimRainList_MLE[[1]], type = "boxplot") #plot monthly total stats, type of plot can be "boxplot" or "errorbar"
    #MoM-----------
-   wetday_monthlystats_plot(RainDatFormat,SimRainList_MoM, type = "boxplot") #plot monthly wet day stats, type of plot can be "boxplot" or "errorbar"
-   monthlytotal_stats_plot(RainDatFormat,SimRainList_MoM, type = "boxplot") #plot monthly total stats, type of plot can be "boxplot" or "errorbar"
+   wetday_monthlystats_plot(RainDatFormat,SimRainList_MoM[[1]], type = "boxplot") #plot monthly wet day stats, type of plot can be "boxplot" or "errorbar"
+   monthlytotal_stats_plot(RainDatFormat,SimRainList_MoM[[1]], type = "boxplot") #plot monthly total stats, type of plot can be "boxplot" or "errorbar"
   #dev.off()
 }
 #########

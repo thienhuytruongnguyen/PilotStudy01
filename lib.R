@@ -123,7 +123,7 @@ fitAmountModel<- function
       
       int.theta=c(0.1,0.1)    # Arbitrary initial values
       lower.theta=c(1e-5,1e-5)    # Lower bounds of parameters
-      upper.theta=c(1,1e5)  # Upper bounds of parameters
+      upper.theta=c(1e2,1e5)  # Upper bounds of parameters
       
       opt=optim(fn=gamma.loglike, # Function to be optimised
                 par=int.theta,      # Initial Parameter Values
@@ -145,6 +145,30 @@ fitAmountModel<- function
     return()
   }
 }
+
+##fit Amount model (gama and exponential distribution)
+fitAmountModel_MoM<- function
+(obs.data##<<Formated observed data##<<Choosing which mod. Either: expo or gama
+){
+  obs.data <- format_TimeSeries(obs.data)
+  
+    
+    amount.param <- data.frame(matrix(NA,nrow = 12, ncol = 2))
+    
+    for (i in 1:12){
+      
+      monthlyObsData <- obs.data[obs.data$month==i,] ##Passing monthly data to a temporary object
+      
+      monthlyObsDataWetDay<-subset(monthlyObsData, monthlyObsData$Value!=0) ##Subsetting day with 0 values
+      
+      ##using method of moment to obtain a and be parameter
+      M <- mean(monthlyObsDataWetDay[,2]); V = var(monthlyObsDataWetDay[,2])
+      amount.param[i,1] <- (M^2)/V; amount.param[i,2] <- M/V
+
+    }
+    return(amount.param)
+    }
+
 ##----------------------------------------##
 ##Occurence model (WGEN)
 MCmodel <- function(N,PDW,PWW){
@@ -214,7 +238,7 @@ Amount_model <- function
         # Loop to generate rainfall amount for rainny day
         for(k in which(bin == 1)){
           
-          pred[k] <- rgamma(1,shape=amount.param[i,1],rate=1/amount.param[i,2]) # rexp is the exponential distribution sampling function
+          pred[k] <- rgamma(1,shape=amount.param[i,1],rate=amount.param[i,2]) # rexp is the exponential distribution sampling function
         }
         ls.monthly.simrain[[i]][,j] <- pred
       }
@@ -261,20 +285,36 @@ expo.loglike <- function(theta,obs.data){
 }
 ##----------------------------------------##
 #get SimRain (WGEN model)
-getSimRain <- function(obs.data, rep = 10, mod = "gama"){
+getSimRain <- function(obs.data, rep = 10, mod = "gama", option = "MLE"){
 
-#Declaring model parameters objects
-occur.param <-data.frame()
-amount.param <-data.frame()
+  if (option == "MLE"){
+    #Declaring model parameters objects
+    occur.param <-data.frame()
+    amount.param <-data.frame()
+    
+    #Calibrating model parameters
+    occur.param <- fitMCModel(obs.data)
+    amount.param <- fitAmountModel(obs.data,mod)
+    
+    #Simulating
+    ls.month.sim <- Amount_model(occur.param, amount.param, rep, obs.data)
+    
+    return(list(ls.month.sim, occur.param, amount.param))
+  } else if (option == "MoM"){
+    #Declaring model parameters objects
+    occur.param <-data.frame()
+    amount.param <-data.frame()
+    
+    #Calibrating model parameters
+    occur.param <- fitMCModel(obs.data)
+    amount.param <- fitAmountModel_MoM(obs.data)
+    
+    #Simulating
+    ls.month.sim <- Amount_model(occur.param, amount.param, rep, obs.data)
+    
+    return(list(ls.month.sim, occur.param, amount.param))
+  }
 
-#Calibrating model parameters
-occur.param <- fitMCModel(obs.data)
-amount.param <- fitAmountModel(obs.data,mod)
-
-#Simulating
-ls.month.sim <- Amount_model(occur.param, amount.param, rep, obs.data)
-
-return(ls.month.sim)
 }
 ##----------------------------------------##
 ##Prediction interval

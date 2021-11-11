@@ -29,12 +29,11 @@ catchmentInfo <- read.csv("catchmentInfo.csv")
 #Format Station ID for matching data----
 weatherSiteList$station <- as.numeric(weatherSiteList$station)
 catchmentInfo$NearestSilo <- as.numeric(catchmentInfo$NearestSilo)
-
+s=0
 # Run for each of 25 sites----
 for (i in 1:25) {
   
   #Updating site
-  s=1
   s=s+1
 
   
@@ -170,12 +169,12 @@ for (i in 1:25) {
       getAnnualMaxima(indObsDate = indRainDate, value = simRainRep[paramGR4J[[2]], i])
   }
   
-  ##get NSE annual maxima----
-  NSE_annualMaxima <- getNSE(obs = obsAnnualMax, sim = simAnnualMaxima)
-  NSE_annualMaxima <- format(NSE_annualMaxima,digits=3)
-  ##get NSE flow duration curve----
-  NSE_flowDurationCurve <- getNSE_FDC(obs = virObsFlow, sim = simFlowRep)
-  NSE_flowDurationCurve <- format(NSE_flowDurationCurve,digits=3)
+  # ##get NSE annual maxima----
+  # NSE_annualMaxima <- getNSE(obs = obsAnnualMax, sim = simAnnualMaxima)
+  # NSE_annualMaxima <- format(NSE_annualMaxima,digits=3)
+  # ##get NSE flow duration curve----
+  # NSE_flowDurationCurve <- getNSE_FDC(obs = virObsFlow, sim = simFlowRep)
+  # NSE_flowDurationCurve <- format(NSE_flowDurationCurve,digits=3)
   
   #Plotting----------------------------------
   pdf(
@@ -203,6 +202,8 @@ for (i in 1:25) {
   #get station info
   siloStation <-
     paste(
+      " Daily Annual Maxima (Rainfall)",
+      "\n",
       " ID:",
       siloInfo$station,
       "Name:",
@@ -216,8 +217,6 @@ for (i in 1:25) {
       siloInfo$longitude,
       "Elevation:",
       siloInfo$elevation,
-      "NSE:",
-      NSE_annualMaxima,
       sep = " "
     )
   
@@ -245,8 +244,6 @@ for (i in 1:25) {
       start,
       "To:",
       end,
-      "NSE:",
-      NSE_flowDurationCurve,
       sep = " "
     )
   
@@ -258,15 +255,39 @@ for (i in 1:25) {
   
    #call plot function
    compareAnnualMaxima(indObsDate = indFlowDate, obs = virObsFlow, simRep = simFlowRep)
+   
+   mtext("Daily annual maxima (Flow)")
 
    ##Plot simulated vs observed rainfall stats----
    
    RainDatFormat <- format_TimeSeries(RainDat)
    
-   #call plot function
+   #wet day amount stats
    wetday_monthlystats_plot(RainDatFormat, SimRainList[[1]], type = "boxplot")
    
+   #Monthly total stats
    monthlytotal_stats_plot(RainDatFormat, SimRainList[[1]], type = "boxplot")
+   
+   #Dry Spell Plot
+   month <- c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+   maxSpell <- 10
+   for (m in 1:12){
+     compareDrySpell(
+       monthlyObsRain = RainDat$Value[indRainDate$i.mm[[m]]],
+       monthlySimRain = simRainRep[indRainDate$i.mm[[m]], ],
+       maxSpell = maxSpell
+     )
+     mtext(paste("Dry Spell: ", paste(month[m]), sep=""))
+     
+     #Wet Spell Plot
+     compareWetSpell(
+       monthlyObsRain = RainDat$Value[indRainDate$i.mm[[m]]],
+       monthlySimRain = simRainRep[indRainDate$i.mm[[m]], ],
+       maxSpell = maxSpell
+     )
+     mtext(paste("Wet Spell: ", paste(month[m]), sep=""))
+   }
+   
   
   dev.off()
 }
@@ -278,12 +299,5 @@ runEnd - runStart
 
 
 
-  
 
-obsDrySpell <-
-  getDrySpell(value = RainDat$Value[indRainDate$i.mm[[1]]],
-              maxSpell = 10)
 
-obsWetSpell <-
-  getWetSpell(value = RainDat$Value[indRainDate$i.mm[[12]]],
-              maxSpell = 10)

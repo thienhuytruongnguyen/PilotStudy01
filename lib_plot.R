@@ -512,8 +512,16 @@ compareAnnualMaxima <- function(indObsDate,
   
   #Start plot
   
+  #Get range
+  if (min(lowerExceedProb) < min(annualRetInt_obsAnnualMaxima)){
+    minRange <- min(lowerExceedProb)
+  } else {minRange <- min(annualRetInt_obsAnnualMaxima)}
   
-  plot(annualRetInt_obsAnnualMaxima, log="x",pch=4, lwd = 1, ann = FALSE, xaxt ="n", yaxt ="n")
+  if (max(upperExceedProb) > max(annualRetInt_obsAnnualMaxima)){
+    maxRange <- max(upperExceedProb)
+  } else {maxRange <- max(annualRetInt_obsAnnualMaxima)}
+  
+  plot(annualRetInt_obsAnnualMaxima, log="x",pch=4, lwd = 1, ann = FALSE, xaxt ="n", yaxt ="n", ylim = c(minRange, maxRange))
   title(ylab = "Depth (mm)", xlab = "Annual Return Period", line = 2.5)
   
   xticks = c(seq(1,2,0.2),5, 10, 20)
@@ -529,5 +537,86 @@ compareAnnualMaxima <- function(indObsDate,
   lines(upperExceedProb, col="red",lwd=1, lty=3)
   points(medianExceedProb, col="red",cex=0.7, pch = 1)
   
+  
+}
+
+#Intermittency W/D spell distribution plot
+compareDrySpell <- function(monthlyObsRain,
+                            monthlySimRain,
+                            maxSpell = 10){
+  
+  #get obs dry Spell
+  obsDrySpell <-
+    getDrySpell(value = monthlyObsRain, maxSpell = maxSpell)
+  
+  #get sim dry spell
+  simDrySpell <-
+    data.frame(matrix(NA, nrow = ncol(monthlySimRain), ncol = maxSpell))
+  
+  colnames(simDrySpell) <- c(1:10)
+  
+  for (r in 1:nrow(simDrySpell)){
+    simDrySpell[r, ] <-
+      getDrySpell(value = monthlySimRain[, r], maxSpell = maxSpell)
+  }
+  
+  #Define ylim
+  if (min(simDrySpell) < min(obsDrySpell)){
+    minRange <- min(simDrySpell)
+  } else {minRange <- min(obsDrySpell)}
+  
+  if (max(simDrySpell) > max(obsDrySpell)){
+    maxRange <- max(simDrySpell)
+  } else {maxRange <- max(obsDrySpell)}
+  
+  #boxplot
+  boxplot.ext(
+    simDrySpell,
+    ylim = c(minRange, maxRange),
+    whiskersProb = c(0.05, 0.95)
+  )
+  title(ylab = "Proportion of Dry Events", xlab = "Dry Spell (Days)")
+  
+  points(obsDrySpell, pch = 3, col = "red", lwd = 1.5)
+  
+}
+
+compareWetSpell <- function(monthlyObsRain,
+                            monthlySimRain,
+                            maxSpell = 10){
+  
+  #get obs wet Spell
+  obsWetSpell <-
+    getWetSpell(value = monthlyObsRain, maxSpell = maxSpell)
+  
+  #get sim wet spell
+  simWetSpell <-
+    data.frame(matrix(NA, nrow = ncol(monthlySimRain), ncol = maxSpell))
+  
+  colnames(simWetSpell) <- c(1:10)
+  
+  for (r in 1:nrow(simWetSpell)){
+    simWetSpell[r, ] <-
+      getWetSpell(value = monthlySimRain[, r], maxSpell = maxSpell)
+  }
+  
+  #Define ylim
+  if (min(simWetSpell) < min(obsWetSpell)){
+    minRange <- min(simWetSpell)
+  } else {minRange <- min(obsWetSpell)}
+  
+  if (max(simWetSpell) > max(obsWetSpell)){
+    maxRange <- max(simWetSpell)
+  } else {maxRange <- max(obsWetSpell)}
+  
+  #boxplot
+  boxplot.ext(
+    simWetSpell,
+    ylim = c(minRange, maxRange),
+    whiskersProb = c(0.05, 0.95)
+  )
+  title(ylab = "Proportion of Wet Events", xlab = "Wet Spell (Days)")
+  
+  points(obsWetSpell, pch = 3, col = "red", lwd = 1.5)
   
 }

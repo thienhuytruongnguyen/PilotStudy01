@@ -240,7 +240,8 @@ Amount_model <- function
         # Loop to generate rainfall amount for rainny day
         for(k in which(bin == 1)){
           
-          pred[k] <- rgamma(1, shape = amount.param[i, 1], rate = amount.param[i, 2]) # rexp is the exponential distribution sampling function
+          pred[k] <-
+            rgamma(1, shape = amount.param[i, 1], rate = amount.param[i, 2]) 
         }
         ls.monthly.simrain[[i]][,j] <- pred
       }

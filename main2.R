@@ -270,7 +270,9 @@ for (i in 1:25) {
    
    #Dry Spell Plot
    month <- c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+   
    maxSpell <- 10
+   
    for (m in 1:12){
      compareDrySpell(
        monthlyObsRain = RainDat$Value[indRainDate$i.mm[[m]]],
@@ -296,8 +298,5 @@ for (i in 1:25) {
 dev.off()
 runEnd <- Sys.time()
 runEnd - runStart
-
-
-
 
 

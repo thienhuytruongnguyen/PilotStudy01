@@ -30,6 +30,7 @@ catchmentInfo <- read.csv("catchmentInfo.csv")
 weatherSiteList$station <- as.numeric(weatherSiteList$station)
 catchmentInfo$NearestSilo <- as.numeric(catchmentInfo$NearestSilo)
 s=0
+
 # Run for each of 25 sites----
 for (i in 1:25) {
   

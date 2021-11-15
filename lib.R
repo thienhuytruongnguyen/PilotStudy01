@@ -31,16 +31,16 @@ occurr_stats <- function(monthlydata){
   n_wd = 0 #Number of wd events at site
   
   for (i in 2:length(rain.only.month)){
-    if (rain.only.month[i] > 0.1 && rain.only.month[i-1] <= 0.1){
+    if (rain.only.month[i] > 0 && rain.only.month[i-1] <= 0){
       n_dw = n_dw + 1
     }
-    if (rain.only.month[i] > 0.1 && rain.only.month[i-1] > 0.1){
+    if (rain.only.month[i] > 0 && rain.only.month[i-1] > 0){
       n_ww = n_ww + 1
     }
-    if (rain.only.month[i] <= 0.1 && rain.only.month[i-1] <= 0.1){
+    if (rain.only.month[i] <= 0 && rain.only.month[i-1] <= 0){
       n_dd = n_dd + 1
     }
-    if (rain.only.month[i] <= 0.1 && rain.only.month[i-1] > 0.1){
+    if (rain.only.month[i] <= 0 && rain.only.month[i-1] > 0){
       n_wd = n_wd + 1
     }
     

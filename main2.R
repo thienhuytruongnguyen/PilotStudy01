@@ -301,3 +301,50 @@ runEnd <- Sys.time()
 runEnd - runStart
 
 
+
+iniThetaDataframe <- read.csv(file = paste(WD,"/WGENmodel_parameter_eachSite/Site1_410730.csv",sep = ""))
+iniTheta <- rep(0,48)
+iniTheta[1:12]<-iniThetaDataframe[1:12,1]; iniTheta[13:24]<-iniThetaDataframe[1:12,2]
+iniTheta[25:36]<-iniThetaDataframe[1:12,3]; iniTheta[37:48]<-iniThetaDataframe[1:12,4]
+
+lowerTheta <- rep(0,48)
+lowerTheta[1:24] = 0; lowerTheta[25:48] = 1e-10
+upperTheta <- rep(0,48)
+upperTheta[1:24] = 1; upperTheta[25:48] = Inf
+
+opt <- hydromad::SCEoptim(FUN = SSE_FlowDurationCurve,
+                   par = iniTheta,
+                   obsRain = RainDat,
+                   paramGR4J = paramGR4J,
+                   virObsFlow = virObsFlow,
+                   lower = lowerTheta,
+                   upper = upperTheta)
+Sys.time()
+
+theta_Trial01 <- opt$par
+
+simFlowRep_Opt <- getSimFlowRep_Opt(theta = theta_Trial01,
+                                    paramGR4J = paramGR4J,
+                                    rep = 100,
+                                    obsRain = RainDat)
+
+
+
+
+
+plotFlowDurationCurve(simFlowRep = simFlowRep_Opt, virObsFlow = virObsFlow, option = "withCILimit")
+compareAnnualMaxima(indObsDate = indFlowDate, obs = virObsFlow, simRep = simFlowRep_Opt)
+wetday_monthlystats_plot(RainDatFormat, simRainList_Opt, type = "boxplot")
+monthlytotal_stats_plot(RainDatFormat, simRainList_Opt, type = "boxplot")
+
+
+opt <- optim(fn = SSE_FlowDurationCurve,
+                          par = iniTheta,
+                          obsRain = RainDat,
+                          paramGR4J = paramGR4J,
+                          virObsFlow = virObsFlow,
+                          lower = lowerTheta,
+                          upper = upperTheta, method = "L-BFGS-B")
+
+
+

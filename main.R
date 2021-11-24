@@ -165,16 +165,5 @@ simRaintoFDCModel(paramMC = paramMC,
                   paramGR4J = paramGR4J,
                   virObsFlow = virObsFlow)
 
-gammadist<-rgamma(1000,shape = 1, scale = 1)
-manipulate(plot(density(rgamma(1000,a,b))),a = slider(0.001,10), b = slider(1,50))
-manipulate(lines(c),c=slider(1,50))
-manipulate(plot(1:x), x = slider(1, 100))
 
-
-exceedProbRep <- getExceedProbRep(simFlowRep)
-exceedRep <- data.frame(matrix(NA,nrow = length(exceedProbRep[[1]]$Flow),ncol=30))
-for (i in 1:30){
-  exceedRep[,i] <- exceedProbRep[[i]]$Flow
-}
-exceedProbRep <- getExceedProbRep(exceedRep)
 

@@ -599,12 +599,12 @@ manualWGEN <- function(paramMC,
                        obs.data,
                        rep
 ){
-  simRainList <- Amount_model(occur.param = paramMC, amount.param = paramAmount, rep = rep, obs.data = obs.data)
-  simRainRep <- getSimRainRep(SimRainList = simRainList)
+  SimRainList <- Amount_model(occur.param = paramMC, amount.param = paramAmount, rep = rep, obs.data = obs.data)
+  simRainRep <- rbind(SimRainList[[1]],SimRainList[[2]],SimRainList[[3]],SimRainList[[4]],SimRainList[[5]],SimRainList[[6]],SimRainList[[7]],SimRainList[[8]],SimRainList[[9]],SimRainList[[10]],SimRainList[[11]],SimRainList[[12]])
   
-  return(simRainRep)
+  return(simRainRep$matrix.NA..nrow...length.rain.data.rain.data.month....i..2....)
 }
-
+##---------------------------------------##
 simRaintoFDCModel <- function(paramMC, 
                               paramAmount, obs.data, 
                               rep,
@@ -617,8 +617,58 @@ simRaintoFDCModel <- function(paramMC,
   #Plot FDC
   plotFlowDurationCurve(simFlowRep = simFlowRep, virObsFlow = virObsFlow, option = "withCILimit")
 }
+##---------------------------------------##
+SSE_FlowDurationCurve <- function(theta,
+                              obsRain,
+                              paramGR4J,
+                              virObsFlow){
+#Passing element in theta to WGEN parameter
+  #Occurence model parameters
+paramMC <- data.frame(matrix(NA,12,2))
+paramMC[,1] <- theta[1:12]; paramMC[,2] <- theta[13:24]
+  #Amount model parameters
+paramAmount <- data.frame(matrix(NA,12,2))
+paramAmount[,1] <- theta[25:36]; paramAmount[,2] <- theta[37:48]
 
-
+#Generate sim rain with given parameters above (a vector)
+  simRainRep <- manualWGEN(paramMC, paramAmount, obsRain, rep = 1) #Get Rainfall replicates
+#Generate sim flow with sim rain
+  #add simRain to paramGR4J options
+  paramGR4J[[3]]$Precip <- simRainRep
+  #RunGR4J model with updated sim rain
+  outputGR4J <- runGR4J(paramGR4J)
+  #Get sim flow from output GR4J
+  simFlowRep <- outputGR4J$Qsim
+  
+#Calculate Exceedance Probability for sim flow and virobs flow
+  simFDC <- getExceedProb(simFlowRep)
+  virObsFDC <- getExceedProb(virObsFlow)
+  
+#Calculate the Sum of square Error
+  err <- simFDC$Flow - virObsFDC$Flow
+  SSE <- sum(err^2)
+  
+  return(SSE)
+}
+##---------------------------------------##
+getSimFlowRep_Opt <- function(theta,
+                              paramGR4J,
+                              rep=100,
+                              obsRain){
+  
+  paramMC <- data.frame(matrix(NA,12,2))
+  paramMC[,1] <- theta[1:12]; paramMC[,2] <- theta[13:24]
+  paramAmount <- data.frame(matrix(NA,12,2))
+  paramAmount[,1] <- theta[25:36]; paramAmount[,2] <- theta[37:48]
+  
+  simRainList_Opt <- Amount_model(paramMC, paramAmount, rep = rep, obsRain)
+  simRainRep_Opt <- getSimRainRep(simRainList_Opt)
+  
+  simFlowRep_Opt <-
+    getSimFlowRep(simRainRep = simRainRep_Opt, paramGR4J = paramGR4J)
+  
+  return(simFlowRep_Opt)
+}
 # # create index partition of each month, e.g. i.mm[[1]] = c(1,2,3...,31,366,367,...) for Jan; i.mm[[2]]=c(32,33,...)
 # # input: dat - observed data vector of dates as string values
 # # output is list of length 12 with integer vectors giving indices for relevant months
@@ -727,7 +777,7 @@ getDates=function(dat){
   }
   return(list(dd=dd,mm=mm,yy=yy,jul=jul,julf=julf,nDy=nDy))
 }
-###################################################
+##-------------------------------------------------------------------#
 ##Get annual return period
 getAnnualRetInt <- function(dat){
   n <- length(dat) #number of events
@@ -752,7 +802,7 @@ getAnnualRetIntRep <- function(simDatRep){
   return(repRetInt)
 }
 
-#---------------------------------
+#---------------------------------#
 ##Get annual maxima and plot
 getAnnualMaxima <- function(indObsDate,
                             value){
@@ -765,7 +815,7 @@ getAnnualMaxima <- function(indObsDate,
 }
 
 
-###############################
+##-------------------------------------------------------------------#
 ##sum of squares Error
 getSSE <- function(obs, sim){
   err <- data.frame(matrix(NA, nrow = nrow(sim), ncol = ncol(sim)))
@@ -880,4 +930,75 @@ getWetSpell <- function(value,
   }
   
   return(wetSpellDist)
-}  
+} 
+##-------------------------------------------------------------------#
+
+isLeap.vec=function(y){
+  y%%4==0& (!(y%%100==0))|(y%%400==0)
+}
+##-------------------------------------------------------------------#
+
+makeSimDates=function(nYr=10000){
+  print(paste(Sys.time(),"Start",match.call()[1]))
+  if(nYr>100) print("May take a few minutes ... time for a coffee")
+  if(nYr>1000) print("May take a few minutes ... actually, time for lunchbreak")
+  print("Creating dates")
+  dttmp=seq(as.Date("01/01/2000",format="%d/%m/%Y"), as.Date(paste0("31/12/",2050-1),format="%d/%m/%Y"), "days")
+  nsDy=length(dttmp)
+  print("Getting date components")
+  sdd=as.POSIXlt(dttmp)$mday
+  sjul=as.POSIXlt(dttmp)$yday # julian day
+  smm=as.POSIXlt(dttmp)$mon+1
+  syy=as.POSIXlt(dttmp)$year+1900
+  
+  sjulf=sjul/(365+as.integer(isLeap.vec(syy))) # julian fraction
+  
+  print("Creating monthly index")
+  j.mm=NULL # CREATE MONTHLY INDICES
+  for(m in 1:12) j.mm[[m]]=which(smm%in%m) #all years
+  
+  # indices for each year
+  print("Creating yearly index")
+  stYr=syy[1]
+  fnYr=syy[nsDy]
+  years=stYr:fnYr
+  
+  j.yy=vector(nYr,mode="list")
+  for(Y in 1:nYr) j.yy[[Y]]=which(syy%in%years[Y]) # all years
+  
+  # indices for each unique year-month
+  print("Creating year-month index")
+  j.ym=vector(nYr,mode="list") # CREATE YEAR-MONTH INDICES
+  for(Y in 1:nYr){
+    j.ym[[Y]]=vector(12,mode="list")
+    for(m in 1:12){
+      j.ym[[Y]][[m]]=j.yy[[Y]][j.yy[[Y]]%in%j.mm[[m]]]
+    }
+  }
+  
+  # Now make a chunk at length 400 years - the leap year pattern repeats every 400 years so is convenient for simulation
+  # cannot use earlier values since will not work when nYr<400
+  nYr.chunk=400 # to simulate 400 years at a time - needed to avoid using up too much memory during long simulation
+  # do not vary this parameter because although 100 years of 1000 year chunks might give better performance, extra specialised code will be needed to correct for leap years
+  print("Creating quad-century leap year index for simulation chunking")
+  dttmp400=seq(as.Date("01/01/0000",format="%d/%m/%Y"), as.Date(paste0("31/12/",nYr.chunk-1),format="%d/%m/%Y"), "days")
+  nsDy400=length(dttmp400)
+  sdd400=as.POSIXlt(dttmp400)$mday
+  sjul400=as.POSIXlt(dttmp400)$yday # julian day
+  smm400=as.POSIXlt(dttmp400)$mon+1
+  syy400=as.POSIXlt(dttmp400)$year+1900
+  
+  sjulf400=sjul400/(365+as.integer(isLeap.vec(syy400))) # julian fraction
+  
+  j.mm400=NULL # CREATE MONTHLY INDICES
+  for(m in 1:12) j.mm400[[m]]=which(smm400%in%m) #all years
+  
+  print("Creating ascii format")
+  predatefmt=format(dttmp,format="%d/%m/%Y") # create format for output strings, needed to write ascii files
+  predatefmt400=format(dttmp400,format="%d/%m/%Y") # create format for output strings, needed to write ascii files
+  
+  print(paste(Sys.time(),"Fin",match.call()[1]))
+  return(list(j.mm=j.mm,j.yy=j.yy,j.ym=j.ym,years=years,nYr=nYr,str=predatefmt,nsDy=nsDy,smm=smm,sdd=sdd,syy=syy,sjul=sjul,sjulf=sjulf,
+              j.mm400=j.mm400,str400=predatefmt400,nsDy400=nsDy400,smm400=smm400,sdd400=sdd400,syy400=syy400,sjul400=sjul400,sjulf400=sjulf400,
+              nYr.chunk=nYr.chunk))
+}

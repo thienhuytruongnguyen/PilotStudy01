@@ -599,10 +599,10 @@ manualWGEN <- function(paramMC,
                        obs.data,
                        rep
 ){
-  simRainList <- Amount_model(occur.param = paramMC, amount.param = paramAmount, rep = rep, obs.data = obs.data)
-  simRainRep <- getSimRainRep(SimRainList = simRainList)
+  SimRainList <- Amount_model(occur.param = paramMC, amount.param = paramAmount, rep = rep, obs.data = obs.data)
+  simRainRep <- rbind(SimRainList[[1]],SimRainList[[2]],SimRainList[[3]],SimRainList[[4]],SimRainList[[5]],SimRainList[[6]],SimRainList[[7]],SimRainList[[8]],SimRainList[[9]],SimRainList[[10]],SimRainList[[11]],SimRainList[[12]])
   
-  return(simRainRep)
+  return(simRainRep$matrix.NA..nrow...length.rain.data.rain.data.month....i..2....)
 }
 
 simRaintoFDCModel <- function(paramMC, 
@@ -881,3 +881,11 @@ getWetSpell <- function(value,
   
   return(wetSpellDist)
 }  
+
+#Random shuffle a time series
+randomShuffle <- function(x,n){
+  for (i in 1:n ) {
+    x = x[.Internal(sample(length(x),length(x), FALSE, NULL))]
+  }
+  return(x)
+}

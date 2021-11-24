@@ -667,7 +667,7 @@ getSimFlowRep_Opt <- function(theta,
   simFlowRep_Opt <-
     getSimFlowRep(simRainRep = simRainRep_Opt, paramGR4J = paramGR4J)
   
-  return(simFlowRep_Opt)
+  return(list(simFlowRep_Opt,simRainList_Opt))
 }
 # # create index partition of each month, e.g. i.mm[[1]] = c(1,2,3...,31,366,367,...) for Jan; i.mm[[2]]=c(32,33,...)
 # # input: dat - observed data vector of dates as string values

@@ -647,7 +647,7 @@ paramAmount[,1] <- theta[25:36]; paramAmount[,2] <- theta[37:48]
 #Calculate the Sum of square Error
   err <- simFDC$Flow - virObsFDC$Flow
   SSE <- sum(err^2)
-  
+  SSE <-SSE*100
   return(SSE)
 }
 ##---------------------------------------##
@@ -667,7 +667,11 @@ getSimFlowRep_Opt <- function(theta,
   simFlowRep_Opt <-
     getSimFlowRep(simRainRep = simRainRep_Opt, paramGR4J = paramGR4J)
   
+<<<<<<< HEAD
   return(list(simFlowRep_Opt,simRainList_Opt))
+=======
+  return(list(simFlowRep_Opt, simRainList_Opt))
+>>>>>>> 7ec8ac65464238bab4395fd91123479e71ef7ebc
 }
 # # create index partition of each month, e.g. i.mm[[1]] = c(1,2,3...,31,366,367,...) for Jan; i.mm[[2]]=c(32,33,...)
 # # input: dat - observed data vector of dates as string values
@@ -930,6 +934,16 @@ getWetSpell <- function(value,
   }
   
   return(wetSpellDist)
+
+}  
+
+#Random shuffle a time series
+randomShuffle <- function(x,n){
+  for (i in 1:n ) {
+    x = x[.Internal(sample(length(x),length(x), FALSE, NULL))]
+  }
+  return(x)
+
 } 
 ##-------------------------------------------------------------------#
 
@@ -1001,4 +1015,5 @@ makeSimDates=function(nYr=10000){
   return(list(j.mm=j.mm,j.yy=j.yy,j.ym=j.ym,years=years,nYr=nYr,str=predatefmt,nsDy=nsDy,smm=smm,sdd=sdd,syy=syy,sjul=sjul,sjulf=sjulf,
               j.mm400=j.mm400,str400=predatefmt400,nsDy400=nsDy400,smm400=smm400,sdd400=sdd400,syy400=syy400,sjul400=sjul400,sjulf400=sjulf400,
               nYr.chunk=nYr.chunk))
+
 }

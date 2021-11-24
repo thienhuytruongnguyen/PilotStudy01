@@ -1,6 +1,6 @@
 ##--This script is used to run the rainfall-runoff simulation with known GR4J parameters--
 ## add option for Method of moment for amount model
-## Status: MoM does not work
+## Status: MoM does work
 runStart <- Sys.time()
 WD<-getwd()
 pdf(file = paste(WD,"/FDC_results/Fixed/","AnnualMaxvsFDCwithNSE",sep = ""), 

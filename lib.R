@@ -597,7 +597,7 @@ getExceedProbRep <- function(simFlowRep){
 manualWGEN <- function(paramMC,
                        paramAmount,
                        obs.data,
-                       rep
+                       rep = 1
 ){
   simRainList <- Amount_model(occur.param = paramMC, amount.param = paramAmount, rep = rep, obs.data = obs.data)
   simRainRep <- getSimRainRep(SimRainList = simRainList)
@@ -606,17 +606,19 @@ manualWGEN <- function(paramMC,
 }
 
 simRaintoFDCModel <- function(paramMC, 
-                              paramAmount, obs.data, 
-                              rep,
+                              paramAmount, obs.rain, 
+                              rep = 1,
                               paramGR4J, virObsFlow
 ){
   #make sim rain
-  simRainRep <- manualWGEN(paramMC, paramAmount, obs.data, rep) #Get Rainfall replicates
+  simRainRep <- manualWGEN(paramMC, paramAmount, obs.rain, rep) #Get Rainfall replicates
   ##Get SimFlow Rep
   simFlowRep <- getSimFlowRep(simRainRep = simRainRep, paramGR4J = paramGR4J)
-  #Plot FDC
-  plotFlowDurationCurve(simFlowRep = simFlowRep, virObsFlow = virObsFlow, option = "withCILimit")
+  #return
+  return(simFlowRep)
 }
+
+OFwrapper <- function()
 
 
 # # create index partition of each month, e.g. i.mm[[1]] = c(1,2,3...,31,366,367,...) for Jan; i.mm[[2]]=c(32,33,...)
@@ -766,7 +768,7 @@ getAnnualMaxima <- function(indObsDate,
 
 
 ###############################
-##sum of squares Error
+##sum of squares Error----
 getSSE <- function(obs, sim){
   err <- data.frame(matrix(NA, nrow = nrow(sim), ncol = ncol(sim)))
   SSE <- rep(0,ncol(sim))
@@ -778,7 +780,7 @@ getSSE <- function(obs, sim){
   return(SSE)
 } 
 
-##RMSE 
+##RMSE----
 getRMSE <- function(obs, sim){
   err <- data.frame(matrix(NA, nrow = nrow(sim), ncol = ncol(sim)))
   RMSE <- rep(0,ncol(sim))
@@ -790,7 +792,7 @@ getRMSE <- function(obs, sim){
   return(RMSE)
 }
 
-##NSE
+##NSE----
 getNSE <- function(obs, sim){
   
   squareErr <- data.frame(matrix(NA, nrow = nrow(sim), ncol = ncol(sim))) #A matrix with rows = number variables, columns = number of replicates
@@ -806,7 +808,7 @@ getNSE <- function(obs, sim){
   return(NSE)
 }
 
-##get NSE for flow duration curve
+##get NSE for flow duration curve----
 getNSE_FDC <- function(obs,sim){
   
   #Get exceedance probability
@@ -822,7 +824,7 @@ getNSE_FDC <- function(obs,sim){
   NSE <- getNSE(obs = obsExceedProb$Flow, sim = simExceedProbDF)
 }
 
-##-----------------------Spell Distribution--------------------------------#
+##-----------------------Spell Distribution--------------------------------
 getDrySpell <- function(value,
                         maxSpell = 10){
   
@@ -852,7 +854,7 @@ getDrySpell <- function(value,
   return(drySpellDist)
 }
 
-##-------------------------------------------------------------------#
+##-------------------------------------------------------------------
 getWetSpell <- function(value,
                         maxSpell = 10){
   

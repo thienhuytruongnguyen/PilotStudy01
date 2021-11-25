@@ -300,6 +300,10 @@ dev.off()
 runEnd <- Sys.time()
 runEnd - runStart
 
+
+compareMean3dayTotal(obs = RainDat$Value, sim = simRainRep, indObsDate = indRainDate)
+compareMean5dayTotal(obs = RainDat$Value, sim = simRainRep, indObsDate = indRainDate)
+
 #----Using SCE Optimiser----
 
 iniThetaDataframe <-
@@ -469,13 +473,6 @@ for (t in 1:4){
   
   dev.off()
 }
-
-
-
-
-
-
-
 
 
 opt <- optim(fn = SSE_FlowDurationCurve,

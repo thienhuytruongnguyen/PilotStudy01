@@ -666,15 +666,7 @@ getSimFlowRep_Opt <- function(theta,
   
   simFlowRep_Opt <-
     getSimFlowRep(simRainRep = simRainRep_Opt, paramGR4J = paramGR4J)
-  
-
-<<<<<<< HEAD
-OFwrapper <- function()
-
-=======
-  return(list(simFlowRep_Opt,simRainList_Opt))
->>>>>>> 36f556c77e11326812aaae81559b6e763ccbbc44
-
+  return(list(simFlowRep_Opt,simRainList_Opt,simRainRep_Opt))
 }
 # # create index partition of each month, e.g. i.mm[[1]] = c(1,2,3...,31,366,367,...) for Jan; i.mm[[2]]=c(32,33,...)
 # # input: dat - observed data vector of dates as string values
@@ -822,13 +814,7 @@ getAnnualMaxima <- function(indObsDate,
 }
 
 
-<<<<<<< HEAD
-###############################
-##sum of squares Error----
-=======
-##-------------------------------------------------------------------#
-##sum of squares Error
->>>>>>> 36f556c77e11326812aaae81559b6e763ccbbc44
+
 getSSE <- function(obs, sim){
   err <- data.frame(matrix(NA, nrow = nrow(sim), ncol = ncol(sim)))
   SSE <- rep(0,ncol(sim))
@@ -840,7 +826,7 @@ getSSE <- function(obs, sim){
   return(SSE)
 } 
 
-##RMSE----
+##RMSE----#
 getRMSE <- function(obs, sim){
   err <- data.frame(matrix(NA, nrow = nrow(sim), ncol = ncol(sim)))
   RMSE <- rep(0,ncol(sim))
@@ -852,7 +838,7 @@ getRMSE <- function(obs, sim){
   return(RMSE)
 }
 
-##NSE----
+##NSE----#
 getNSE <- function(obs, sim){
   
   squareErr <- data.frame(matrix(NA, nrow = nrow(sim), ncol = ncol(sim))) #A matrix with rows = number variables, columns = number of replicates
@@ -868,7 +854,7 @@ getNSE <- function(obs, sim){
   return(NSE)
 }
 
-##get NSE for flow duration curve----
+##get NSE for flow duration curve----#
 getNSE_FDC <- function(obs,sim){
   
   #Get exceedance probability
@@ -884,7 +870,7 @@ getNSE_FDC <- function(obs,sim){
   NSE <- getNSE(obs = obsExceedProb$Flow, sim = simExceedProbDF)
 }
 
-##-----------------------Spell Distribution--------------------------------
+##-----------------------Spell Distribution--------------------------------#
 getDrySpell <- function(value,
                         maxSpell = 10){
   
@@ -914,7 +900,7 @@ getDrySpell <- function(value,
   return(drySpellDist)
 }
 
-##-------------------------------------------------------------------
+##-------------------------------------------------------------------#
 getWetSpell <- function(value,
                         maxSpell = 10){
   
@@ -951,7 +937,6 @@ randomShuffle <- function(x,n){
     x = x[.Internal(sample(length(x),length(x), FALSE, NULL))]
   }
   return(x)
-
 } 
 ##-------------------------------------------------------------------#
 
@@ -1025,3 +1010,26 @@ makeSimDates=function(nYr=10000){
               nYr.chunk=nYr.chunk))
 
 }
+
+##---------------------#
+getMean3dayTotal <- function(value,#Rainfall timeseries
+                             indObsDate){#day index of timeseries
+  mean3dayTotal = rep(0,12)
+  for (i in 1:12){#Loop for each month
+    threeDayTotal <- zoo::rollsum(value[indObsDate$i.mm[[i]]],3) #Get sum 3 day for each month
+    mean3dayTotal[i] <- mean(threeDayTotal) #get average 3 day total for each month
+  }
+  return(mean3dayTotal)
+}
+
+##------------------#
+getMean5dayTotal <- function(value,
+                             indObsDate){
+  mean5dayTotal = rep(0,12)
+  for (i in 1:12){
+    fiveDayTotal <- zoo::rollsum(value[indObsDate$i.mm[[i]]],5)
+    mean5dayTotal[i] <- mean(fiveDayTotal)
+  }
+  return(mean5dayTotal)
+}
+

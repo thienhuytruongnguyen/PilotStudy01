@@ -620,3 +620,104 @@ compareWetSpell <- function(monthlyObsRain,
   points(obsWetSpell, pch = 3, col = "red", lwd = 1.5)
   
 }
+
+compareMean3dayTotal <- function(obs,
+                                 sim,
+                                 indObsDate){
+  
+  #Get obs stats
+  obsMean3dayTotal <- getMean3dayTotal(obs, indObsDate = indObsDate)
+  
+  #Get sim stats
+  simMean3dayTotal <- data.frame(matrix(NA, ncol(sim), 12))
+  colnames(simMean3dayTotal) <-
+    c("Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec")
+  #Loop for each rep
+  
+    for (i in 1: nrow(simMean3dayTotal)){
+      
+      simMean3dayTotal[i,] <- getMean3dayTotal(sim[,i], indObsDate = indObsDate)
+      
+    }
+  
+  
+  
+  if (min(simMean3dayTotal) < min(obsMean3dayTotal)){
+    minRange <- min(simMean3dayTotal)
+  } else {minRange <- min(obsMean3dayTotal)}
+  
+  if (max(simMean3dayTotal) > max(obsMean3dayTotal)){
+    maxRange <- max(simMean3dayTotal)
+  } else {maxRange <- max(obsMean3dayTotal)}
+  
+  #boxplot
+  boxplot.ext(
+    simMean3dayTotal,
+    ylim = c(minRange, maxRange),
+    whiskersProb = c(0.05, 0.95)
+  )
+  title(main = "Mean monthly 3-day total (mm)")
+  points(obsMean3dayTotal , col = "red", pch = 3)
+}
+
+
+compareMean5dayTotal <- function(obs,
+                                 sim,
+                                 indObsDate){
+  
+  #Get obs stats
+  obsMean5dayTotal <- getMean5dayTotal(obs, indObsDate = indObsDate)
+  
+  #Get sim stats
+  simMean5dayTotal <- data.frame(matrix(NA, ncol(sim), 12))
+  colnames(simMean5dayTotal) <-
+    c("Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec")
+  #Loop for each rep
+  
+  for (i in 1: nrow(simMean5dayTotal)){
+    
+    simMean5dayTotal[i,] <- getMean5dayTotal(sim[,i], indObsDate = indObsDate)
+    
+  }
+  
+  
+  
+  if (min(simMean5dayTotal) < min(obsMean5dayTotal)){
+    minRange <- min(simMean5dayTotal)
+  } else {minRange <- min(obsMean5dayTotal)}
+  
+  if (max(simMean5dayTotal) > max(obsMean5dayTotal)){
+    maxRange <- max(simMean5dayTotal)
+  } else {maxRange <- max(obsMean5dayTotal)}
+  
+  #boxplot
+  boxplot.ext(
+    simMean5dayTotal,
+    ylim = c(minRange, maxRange),
+    whiskersProb = c(0.05, 0.95)
+  )
+  title(main = "Mean monthly 5-day total (mm)")
+  points(obsMean5dayTotal , col = "red", pch = 3)
+}

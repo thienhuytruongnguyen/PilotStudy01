@@ -269,6 +269,10 @@ for (i in 1:25) {
    #Monthly total stats
    monthlytotal_stats_plot(RainDatFormat, SimRainList[[1]], type = "boxplot")
    
+   #mean 3-5 day total monthly
+   compareMean3dayTotal(obs = RainDat$Value, sim = simRainRep, indObsDate = indRainDate)
+   compareMean5dayTotal(obs = RainDat$Value, sim = simRainRep, indObsDate = indRainDate)
+   
    #Dry Spell Plot
    month <- c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
    
@@ -300,9 +304,33 @@ dev.off()
 runEnd <- Sys.time()
 runEnd - runStart
 
+#Random shuffle----
+simRainListShuffle <- SimRainList
+for (m in 1:12){
+  for (r in 1:100){
+    simRainListShuffle[[1]][[m]][r,] <- randomShuffle(simRainListShuffle[[1]][[m]][r,],10)
+  }
+}
 
+simRainRepShuffle <- getSimRainRep(simRainListShuffle[[1]])
+
+simFlowRepShuffle <-
+  getSimFlowRep(simRainRep = simRainRepShuffle, paramGR4J = paramGR4J)
+
+plotFlowDurationCurve(simFlowRep = simFlowRep, virObsFlow = virObsFlow, option = "withCILimit")
+plotFlowDurationCurve(simFlowRep = simFlowRepShuffle, virObsFlow = virObsFlow, option = "withCILimit")
+compareAnnualMaxima(indObsDate = indFlowDate, obs = virObsFlow, simRep = simFlowRep)
+compareAnnualMaxima(indObsDate = indFlowDate, obs = virObsFlow, simRep = simFlowRepShuffle)
+#wet day amount stats
+wetday_monthlystats_plot(RainDatFormat, simRainListShuffle[[1]], type = "boxplot")
+
+#Monthly total stats
+monthlytotal_stats_plot(RainDatFormat, SimRainList[[1]], type = "boxplot")
+
+#mean 3-5 day total monthly
 compareMean3dayTotal(obs = RainDat$Value, sim = simRainRep, indObsDate = indRainDate)
 compareMean5dayTotal(obs = RainDat$Value, sim = simRainRep, indObsDate = indRainDate)
+
 
 #----Using SCE Optimiser----
 
@@ -331,9 +359,9 @@ Sys.time()
 theta_Trial04 <- opt$par
 
 ##Collecting results from trial
-trial <- list(theta_Trial01, theta_Trial02, theta_Trial03,theta_Trial04)
+trial <- list(iniTheta, theta_Trial01, theta_Trial02, theta_Trial03,theta_Trial04,theta_Trial05)
 
-for (t in 1:4){
+for (t in 1:6){
   theta <- trial[[t]]
   
   simFlowRep_Opt <- getSimFlowRep_Opt(theta = theta,
@@ -436,7 +464,8 @@ for (t in 1:4){
   
   wetday_monthlystats_plot(RainDatFormat, simFlowRep_Opt[[2]], type = "boxplot")
   monthlytotal_stats_plot(RainDatFormat, simFlowRep_Opt[[2]], type = "boxplot")
-  
+  compareMean3dayTotal(obs = RainDat$Value, sim = simFlowRep_Opt[[3]], indObsDate = indRainDate)
+  compareMean5dayTotal(obs = RainDat$Value, sim = simFlowRep_Opt[[3]], indObsDate = indRainDate)
   #Dry Spell Plot
   month <-
     c("Jan",
@@ -475,6 +504,14 @@ for (t in 1:4){
 }
 
 
+
+  paramMC <- data.frame(matrix(NA,12,2))
+  paramMC[,1] <- iniTheta[1:12]; paramMC[,2] <- iniTheta[13:24]
+  paramAmount <- data.frame(matrix(NA,12,2))
+  paramAmount[,1] <- iniTheta[25:36]; paramAmount[,2] <- iniTheta[37:48]
+
+write.csv(paramMC,"occur.csv")
+write.csv(paramAmount,"amount.csv")
 opt <- optim(fn = SSE_FlowDurationCurve,
                           par = iniTheta,
                           obsRain = RainDat,

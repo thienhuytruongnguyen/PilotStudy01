@@ -24,7 +24,7 @@ warmup <- 24
 #make parameter list
 paramGR4JShuffle <-
   getParamGR4J(
-    inputGR4J = inputGR4J,
+    inputGR4J = inputGR4JShuffle,
     start = start,
     end = end,
     warmup = warmup,
@@ -41,8 +41,26 @@ virObsFlowShuffle <- outputGR4JShuffle$Qsim
   
   plotFlowDurationCurve(simFlowRep = simFlowRep, virObsFlow = virObsFlow, option = "withCILimit")
   
-points(obsFDCShuffle)
-
+lines(obsFDCShuffle, col="chartreuse", lwd = 2.5)
+abline(v = seq(0, 1, 0.2), h = c(0.1,0.5,2,5,20), col = "lightgray", lty = 3)
   compareAnnualMaxima(indObsDate = indFlowDate, obs = virObsFlow, simRep = simFlowRep)
 obsAMShuffle <- getAnnualMaxima(virObsFlowShuffle, indObsDate = indFlowDate)
-points(obsAMShuffle,col="blue")
+
+obsAMRIShuffle <- getAnnualRetInt(obsAMShuffle)
+points(obsAMRIShuffle,col="chartreuse")
+
+
+
+
+#Check MC model----
+
+occParamZero <- fitMCModel(RainDat)
+occParamNode1 <- fitMCModel(RainDat)
+occParamZero2 <- fitMCModel(RainDat)
+write.csv(RainDat,file = "RainDat.csv")
+
+RainDatMod <- RainDat
+RainDatMod$Value[RainDatMod$Value <= 0.1] <- 0
+occurParamNode12 <- fitMCModel(RainDatMod)
+
+amountparam2 <- fitAmountModel(RainDat,mod = "gama")

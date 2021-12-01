@@ -11,7 +11,7 @@ return (x)
 }
 ##----------------------------------------##
 ##get Occurrence statistics
-occurr_stats <- function(monthlydata){
+occurr_stats <- function(monthlydata,threshold){
   
   #Storing only rain data to a data frame for processing
   rain.only.month <- data.frame(matrix(NA,nrow = length(monthlydata)))
@@ -21,7 +21,7 @@ occurr_stats <- function(monthlydata){
   P_ww = 0
   Pie_w = 0
   Pie_d = 0
-  P_c <- data.frame(matrix(NA,nrow = (length(rain.only.month)-1)))
+  
   #Loop for each site
   
   #print(s)
@@ -31,16 +31,16 @@ occurr_stats <- function(monthlydata){
   n_wd = 0 #Number of wd events at site
   
   for (i in 2:length(rain.only.month)){
-    if (rain.only.month[i] > 0 && rain.only.month[i-1] <= 0){
+    if (rain.only.month[i] > threshold && rain.only.month[i-1] <= threshold){
       n_dw = n_dw + 1
     }
-    if (rain.only.month[i] > 0 && rain.only.month[i-1] > 0){
+    if (rain.only.month[i] > threshold && rain.only.month[i-1] > threshold){
       n_ww = n_ww + 1
     }
-    if (rain.only.month[i] <= 0 && rain.only.month[i-1] <= 0){
+    if (rain.only.month[i] <= threshold && rain.only.month[i-1] <= threshold){
       n_dd = n_dd + 1
     }
-    if (rain.only.month[i] <= 0 && rain.only.month[i-1] > 0){
+    if (rain.only.month[i] <= threshold && rain.only.month[i-1] > threshold){
       n_wd = n_wd + 1
     }
     
@@ -60,7 +60,7 @@ occurr_stats <- function(monthlydata){
 ##----------------------------------------##
 ##fit Occurence Model (2-state Markov Chain model)
 fitMCModel<- function
-(obs.data ##<<Formatted observed data
+(obs.data, threshold ##<<Formatted observed data
 ){
   obs.data <- format_TimeSeries(obs.data)
   ##Declare a dataframe to store the calibrated parameters
@@ -68,8 +68,8 @@ fitMCModel<- function
   
   for (i in 1:12){##Loop for each month
     
-    x <- occurr_stats(obs.data[obs.data$month==i,2]) #x is a temporary dataframe to store the outcome of function occurr_stats
-    param[i,] <- x[1,] #Store the occurrence parameters set for each month
+    tempMonth <- occurr_stats(obs.data[obs.data$month == i, 2], threshold) #x is a temporary dataframe to store the outcome of function occurr_stats
+    param[i,] <- tempMonth[1,] #Store the occurrence parameters set for each month
     
   }
   
@@ -181,6 +181,7 @@ MCmodel <- function(N,PDW,PWW){
   x <- vector(length = N)
   
   #generate a uniform random series U[0,1] to force the occurrence binary series
+  set.seed(68)
   U_t <- runif(N,0,1)
   
   for (j in 1:length(U_t)){ #loop for generating the binary occurrence time series
@@ -239,7 +240,7 @@ Amount_model <- function
         pred <- rep(0,length(bin))
         # Loop to generate rainfall amount for rainny day
         for(k in which(bin == 1)){
-          
+          set.seed(68)
           pred[k] <-
             rgamma(1, shape = amount.param[i, 1], rate = amount.param[i, 2]) 
         }
@@ -288,7 +289,7 @@ expo.loglike <- function(theta,obs.data){
 }
 ##----------------------------------------##
 #get SimRain (WGEN model)
-getSimRain <- function(obs.data, rep = 10, mod = "gama", option = "MLE"){
+getSimRain <- function(obs.data, rep = 10, mod = "gama", option = "MLE", threshold){
 
   if (option == "MLE"){
     #Declaring model parameters objects
@@ -296,7 +297,7 @@ getSimRain <- function(obs.data, rep = 10, mod = "gama", option = "MLE"){
     amount.param <-data.frame()
     
     #Calibrating model parameters
-    occur.param <- fitMCModel(obs.data)
+    occur.param <- fitMCModel(obs.data,threshold)
     amount.param <- fitAmountModel(obs.data,mod)
     
     #Simulating
@@ -309,7 +310,7 @@ getSimRain <- function(obs.data, rep = 10, mod = "gama", option = "MLE"){
     amount.param <-data.frame()
     
     #Calibrating model parameters
-    occur.param <- fitMCModel(obs.data)
+    occur.param <- fitMCModel(obs.data, threshold)
     amount.param <- fitAmountModel_MoM(obs.data)
     
     #Simulating

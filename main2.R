@@ -109,7 +109,8 @@ for (i in 1:25) {
     getSimRain(RainDat,
                rep = rep,
                mod = "gama",
-               option = "MoM")
+               option = "MoM",
+               threshold = 0)
   
   ##Get SimRain Rep
   simRainRep <- getSimRainRep(SimRainList[[1]])

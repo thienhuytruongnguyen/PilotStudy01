@@ -340,7 +340,7 @@ iniThetaDataframe <-
 iniTheta <- rep(0,48)
 iniTheta[1:12]<-iniThetaDataframe[1:12,1]; iniTheta[13:24]<-iniThetaDataframe[1:12,2]
 iniTheta[25:36]<-iniThetaDataframe[1:12,3]; iniTheta[37:48]<-iniThetaDataframe[1:12,4]
-iniTheta <- theta_Trial02
+iniTheta <- theta_Trial07
 lowerTheta <- rep(0,48)
 lowerTheta[1:24] = 0; lowerTheta[25:48] = 1e-10
 upperTheta <- rep(0,48)
@@ -357,12 +357,12 @@ Sys.time()
 
 
 
-theta_Trial04 <- opt$par
+theta_Trial08 <- opt$par
 
 ##Collecting results from trial
-trial <- list(iniTheta, theta_Trial01, theta_Trial02, theta_Trial03,theta_Trial04,theta_Trial05)
+trial <- list(theta_Trial01, theta_Trial02, theta_Trial03,theta_Trial04,theta_Trial05,theta_Trial06,theta_Trial07,theta_Trial08)
 
-for (t in 1:6){
+for (t in 6:8){
   theta <- trial[[t]]
   
   simFlowRep_Opt <- getSimFlowRep_Opt(theta = theta,
@@ -522,4 +522,7 @@ opt <- optim(fn = SSE_FlowDurationCurve,
                           upper = upperTheta, method = "L-BFGS-B")
 
 
-
+sse <- SSE_FlowDurationCurve(theta = theta_Trial07,
+                             obsRain = RainDat,
+                             paramGR4J = paramGR4J,
+                             virObsFlow = virObsFlow)

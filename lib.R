@@ -14,8 +14,8 @@ return (x)
 occurr_stats <- function(monthlydata,threshold){
   
   #Storing only rain data to a data frame for processing
-  rain.only.month <- data.frame(matrix(NA,nrow = length(monthlydata)))
-  rain.only.month <- monthlydata
+  #tempMonth <- data.frame(matrix(NA,nrow = length(monthlydata)))
+  tempMonth <- monthlydata
   
   P_dw = 0
   P_ww = 0
@@ -30,17 +30,17 @@ occurr_stats <- function(monthlydata,threshold){
   n_dd = 0 #Number of dd events at site
   n_wd = 0 #Number of wd events at site
   
-  for (i in 2:length(rain.only.month)){
-    if (rain.only.month[i] > threshold && rain.only.month[i-1] <= threshold){
+  for (i in 2:length(tempMonth)){
+    if (tempMonth[i] > threshold && tempMonth[i-1] <= threshold){
       n_dw = n_dw + 1
     }
-    if (rain.only.month[i] > threshold && rain.only.month[i-1] > threshold){
+    if (tempMonth[i] > threshold && tempMonth[i-1] > threshold){
       n_ww = n_ww + 1
     }
-    if (rain.only.month[i] <= threshold && rain.only.month[i-1] <= threshold){
+    if (tempMonth[i] <= threshold && tempMonth[i-1] <= threshold){
       n_dd = n_dd + 1
     }
-    if (rain.only.month[i] <= threshold && rain.only.month[i-1] > threshold){
+    if (tempMonth[i] <= threshold && tempMonth[i-1] > threshold){
       n_wd = n_wd + 1
     }
     
@@ -181,7 +181,7 @@ MCmodel <- function(N,PDW,PWW){
   x <- vector(length = N)
   
   #generate a uniform random series U[0,1] to force the occurrence binary series
-  set.seed(68)
+  #set.seed(68)
   U_t <- runif(N,0,1)
   
   for (j in 1:length(U_t)){ #loop for generating the binary occurrence time series
@@ -240,7 +240,7 @@ Amount_model <- function
         pred <- rep(0,length(bin))
         # Loop to generate rainfall amount for rainny day
         for(k in which(bin == 1)){
-          set.seed(68)
+          #set.seed(68)
           pred[k] <-
             rgamma(1, shape = amount.param[i, 1], rate = amount.param[i, 2]) 
         }

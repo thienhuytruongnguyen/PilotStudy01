@@ -648,7 +648,6 @@ paramAmount[,1] <- theta[25:36]; paramAmount[,2] <- theta[37:48]
 #Calculate the Sum of square Error
   err <- simFDC$Flow - virObsFDC$Flow
   SSE <- sum(err^2)
-  SSE <-SSE*100
   return(SSE)
 }
 ##---------------------------------------##

@@ -507,9 +507,9 @@ for (t in 6:8){
 
 
   paramMC <- data.frame(matrix(NA,12,2))
-  paramMC[,1] <- iniTheta[1:12]; paramMC[,2] <- iniTheta[13:24]
+  paramMC[,1] <- theta_Trial08[1:12]; paramMC[,2] <- theta_Trial08[13:24]
   paramAmount <- data.frame(matrix(NA,12,2))
-  paramAmount[,1] <- iniTheta[25:36]; paramAmount[,2] <- iniTheta[37:48]
+  paramAmount[,1] <- theta_Trial08[25:36]; paramAmount[,2] <- theta_Trial08[37:48]
 
 write.csv(paramMC,"occur.csv")
 write.csv(paramAmount,"amount.csv")
@@ -522,7 +522,11 @@ opt <- optim(fn = SSE_FlowDurationCurve,
                           upper = upperTheta, method = "L-BFGS-B")
 
 
-sse <- SSE_FlowDurationCurve(theta = theta_Trial07,
-                             obsRain = RainDat,
-                             paramGR4J = paramGR4J,
-                             virObsFlow = virObsFlow)
+sse <- rep (0,100)
+for (i in 1:100){
+  sse[i] <- SSE_FlowDurationCurve(theta = theta_Trial08,
+                                  obsRain = RainDat,
+                                  paramGR4J = paramGR4J,
+                                  virObsFlow = virObsFlow)
+}
+sse <- mean(sse)

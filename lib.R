@@ -238,11 +238,17 @@ Amount_model <- function
         bin <- MCmodel(length(rain.data[rain.data$month==i,2]), occur.param[i,1], occur.param[i,2])
         # Declare monthly dataframe to store the SimRain
         pred <- rep(0,length(bin))
-        # Loop to generate rainfall amount for rainny day
-        for(k in which(bin == 1)){
-          #set.seed(68)
-          pred[k] <-
-            rgamma(1, shape = amount.param[i, 1], rate = amount.param[i, 2]) 
+        # locate rain days (indexing)
+        indRainDay <- which(bin %in% 1)
+        # get number of rain days
+        nRainDay <- length(bin[which(bin==1)])
+        # make rain
+        #set.seed(68)
+        randRain <- rgamma(nRainDay,amount.param[i,1], amount.param[i,2])
+        # matching
+        pred <- bin
+        for (k in 1:nRainDay){
+          pred[c(indRainDay)][k] <- randRain[k]
         }
         ls.monthly.simrain[[i]][,j] <- pred
       }
@@ -648,6 +654,7 @@ paramAmount[,1] <- theta[25:36]; paramAmount[,2] <- theta[37:48]
 #Calculate the Sum of square Error
   err <- simFDC$Flow - virObsFDC$Flow
   SSE <- sum(err^2)
+  #SSE <- SSE*100
   return(SSE)
 }
 ##---------------------------------------##

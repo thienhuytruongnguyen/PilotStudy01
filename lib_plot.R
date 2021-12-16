@@ -721,3 +721,137 @@ compareMean5dayTotal <- function(obs,
   title(main = "Mean monthly 5-day total (mm)")
   points(obsMean5dayTotal , col = "red", pch = 3)
 }
+#--------------------------------------------------------#
+plotMaster <- function(WD,
+                       s,
+                       whichSite,
+                       indRainDate,
+                       RainDat,
+                       simRainRep,
+                       siloInfo,
+                       simFlowRep,
+                       virObsFlow,
+                       start,
+                       end,
+                       paramGR4J,
+                       SimRainList){
+  pdf(
+    file = paste(
+      WD,
+      "/Results&Plots/RainfallStats_FlowDurationCurve_EachSite/",
+      "Site",
+      s,
+      "_",
+      whichSite$station,
+      ".pdf",
+      sep = ""
+    ),
+    width = 8.25,
+    height = 11.75
+  )
+  
+  par(mfrow=c(2,2))
+  
+  ##Plot return interval for annual maximum rainfall----
+  
+  #call plot function
+  compareAnnualMaxima(indObsDate = indRainDate, obs = RainDat$Value, simRep = simRainRep)
+  
+  #get station info
+  siloStation <-
+    paste(
+      " Daily Annual Maxima (Rainfall)",
+      "\n",
+      " ID:",
+      siloInfo$station,
+      "Name:",
+      as.character(siloInfo$name),
+      "\n",
+      "Juradiction:",
+      siloInfo$state,
+      "Lat:",
+      siloInfo$latitude,
+      "Long:",
+      siloInfo$longitude,
+      "Elevation:",
+      siloInfo$elevation,
+      sep = " "
+    )
+  
+  mtext(siloStation, 3, 0, cex=0.5, adj=0, padj = -0.3)
+  
+  ##Plot Flow Duration Curve for flow depth----
+  #Call plot function
+  plotFlowDurationCurve(simFlowRep = simFlowRep, virObsFlow = virObsFlow, option = "withCILimit")
+  #get outlet info
+  outlet <-
+    paste(
+      " ID:",
+      whichSite[1],
+      "Juradiction:",
+      whichSite[4],
+      "Area:",
+      whichSite[5],
+      "km^2",
+      "\n",
+      "Lat:",
+      whichSite[2],
+      "Long:",
+      whichSite[3],
+      "From:",
+      start,
+      "To:",
+      end,
+      sep = " "
+    )
+  
+  mtext(outlet, 3, 0, cex=.5, adj=0, padj=-.3)
+  
+  ##Plot return interval for annual maximumflow----
+  
+  indFlowDate <- makeObsDates(RainDat$Date_Time[paramGR4J[[2]]]) #Get date index'
+  
+  #call plot function
+  compareAnnualMaxima(indObsDate = indFlowDate, obs = virObsFlow, simRep = simFlowRep)
+  
+  mtext("Daily annual maxima (Flow)")
+  
+  ##Plot simulated vs observed rainfall stats----
+  
+  RainDatFormat <- format_TimeSeries(RainDat)
+  
+  #wet day amount stats
+  wetday_monthlystats_plot(RainDatFormat, SimRainList[[1]], type = "boxplot")
+  
+  #Monthly total stats
+  monthlytotal_stats_plot(RainDatFormat, SimRainList[[1]], type = "boxplot")
+  
+  #mean 3-5 day total monthly
+  compareMean3dayTotal(obs = RainDat$Value, sim = simRainRep, indObsDate = indRainDate)
+  compareMean5dayTotal(obs = RainDat$Value, sim = simRainRep, indObsDate = indRainDate)
+  
+  #Dry Spell Plot
+  month <- c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+  
+  maxSpell <- 10
+  
+  for (m in 1:12){
+    compareDrySpell(
+      monthlyObsRain = RainDat$Value[indRainDate$i.mm[[m]]],
+      monthlySimRain = simRainRep[indRainDate$i.mm[[m]], ],
+      maxSpell = maxSpell
+    )
+    mtext(paste("Dry Spell: ", paste(month[m]), sep=""))
+    
+    #Wet Spell Plot
+    compareWetSpell(
+      monthlyObsRain = RainDat$Value[indRainDate$i.mm[[m]]],
+      monthlySimRain = simRainRep[indRainDate$i.mm[[m]], ],
+      maxSpell = maxSpell
+    )
+    mtext(paste("Wet Spell: ", paste(month[m]), sep=""))
+  }
+  
+  
+  dev.off()
+}

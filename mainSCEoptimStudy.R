@@ -45,7 +45,7 @@ for (t in 6:8){
   pdf(
     file = paste(
       WD,
-      "/Results&Plots/SCEoptim/",
+      "/Results&Plots/SCEoptim/allParam_",
       "Site",
       s,
       "_",
@@ -124,13 +124,13 @@ for (t in 6:8){
         cex = .5,
         adj = 0,
         padj = -.3)
-  
+  indFlowDate <- makeObsDates(RainDat$Date_Time[paramGR4J[[2]]])
   compareAnnualMaxima(indObsDate = indFlowDate,
                       obs = virObsFlow,
                       simRep = simFlowRep_Opt[[1]])
   
   mtext("Daily annual maxima (Flow)")
-  
+  RainDatFormat <- format_TimeSeries(RainDat)
   wetday_monthlystats_plot(RainDatFormat, simFlowRep_Opt[[2]], type = "boxplot")
   monthlytotal_stats_plot(RainDatFormat, simFlowRep_Opt[[2]], type = "boxplot")
   compareMean3dayTotal(obs = RainDat$Value, sim = simFlowRep_Opt[[3]], indObsDate = indRainDate)
@@ -174,13 +174,13 @@ for (t in 6:8){
 
 
 
-paramMC <- data.frame(matrix(NA,12,2))
-paramMC[,1] <- theta_Trial08[1:12]; paramMC[,2] <- theta_Trial08[13:24]
-paramAmount <- data.frame(matrix(NA,12,2))
-paramAmount[,1] <- theta_Trial08[25:36]; paramAmount[,2] <- theta_Trial08[37:48]
+paramocc <- data.frame(matrix(NA,12,2))
+paramocc[,1] <- theta_TrialA09[1:12]; paramocc[,2] <- theta_TrialA09[13:24]
+paramamo <- data.frame(matrix(NA,12,2))
+paramamo[,1] <- theta_TrialA09[25:36]; paramamo[,2] <- theta_TrialA09[37:48]
 
-write.csv(paramMC,"occur.csv")
-write.csv(paramAmount,"amount.csv")
+write.csv(paramocc,"occur.csv")
+write.csv(paramamo,"amount.csv")
 
 
 #SCEOptim occurence parameter only
@@ -264,6 +264,16 @@ for (i in 1:100){
                                      paramGR4J = paramGR4J,
                                      virObsFlow = virObsFlow,
                                      amo = paramMC)
+}
+sse <- mean(sse)
+
+sse <- rep (0,100)
+for (i in 1:100){
+  sse[i] <- SSE_FlowDurationCurve(theta = iniTheta,
+                                     obsRain = RainDat,
+                                     paramGR4J = paramGR4J,
+                                     virObsFlow = virObsFlow
+                                     )
 }
 sse <- mean(sse)
 

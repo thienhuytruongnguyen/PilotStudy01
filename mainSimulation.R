@@ -105,13 +105,14 @@ for (i in 1:25) {
   
   ##Fit the WGEN model and Generate some rainfall replicates
   rep = 100 #set number of replicates
+ 
   SimRainList <-
-    getSimRain(RainDat,
+    getSimRain(RainDatFormat,
                rep = rep,
                mod = "gama",
                option = "MoM",
                threshold = 0)
-  
+
   ##Get SimRain Rep
   simRainRep <- getSimRainRep(SimRainList[[1]])
   
@@ -154,7 +155,6 @@ for (i in 1:25) {
   plotMaster(WD,
             s,
             whichSite,
-            indRainDate,
             RainDat,
             simRainRep,
             siloInfo,

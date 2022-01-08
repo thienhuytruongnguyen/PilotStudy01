@@ -212,10 +212,10 @@ SSE_FlowDurationCurveOcc <- function(theta,
   paramAmount[,1] <- occ[1:12]; paramAmount[,2] <- occ[13:24]
   
   #Generate sim rain with given parameters above (a vector)
-  simRainRep <- manualWGEN(paramMC, paramAmount, obsRain, rep = 1) #Get Rainfall replicates
+  simRainRep <- amountModel_V2.0(occurParam = paramMC,amountParam = paramAmount, indRainDate = indRainDate, rep = 1) #Get Rainfall replicates
   #Generate sim flow with sim rain
   #add simRain to paramGR4J options
-  paramGR4J[[3]]$Precip <- simRainRep
+  paramGR4J[[3]]$Precip <- simRainRep[,1]
   #RunGR4J model with updated sim rain
   outputGR4J <- runGR4J(paramGR4J)
   #Get sim flow from output GR4J
@@ -249,7 +249,7 @@ save.image(file = "SCEOptimMC.RData")
 
 sse <- rep (0,100)
 for (i in 1:100){
-  sse[i] <- SSE_FlowDurationCurveOcc(theta = thetaMC_Trial19,
+  sse[i] <- SSE_FlowDurationCurveOcc(theta = opt$par,
                                   obsRain = RainDat,
                                   paramGR4J = paramGR4J,
                                   virObsFlow = virObsFlow,

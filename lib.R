@@ -203,7 +203,8 @@ Amount_model <- function
  rep,##<<Number of replicates
  obs.data##Formatted observed data
 ){
-  rain.data <- format_TimeSeries(obs.data)
+  #rain.data <- format_TimeSeries(obs.data)
+  rain.data <- obs.data
   ls.monthly.simrain <- list()##List to store sim data for each month
   
   if(length(amount.param[1,]) == 1){ #If exponential
@@ -231,7 +232,7 @@ Amount_model <- function
   
   else if (length(amount.param[1,]) == 2){ #If gamma
     for (i in 1:12){
-      print(i)
+      #print(i)
       ls.monthly.simrain[[i]] <- data.frame(matrix(NA,nrow=length(rain.data[rain.data$month==i,2]),ncol=rep))
       for (j in 1:rep){
         # Create the occurrence binary series
@@ -239,17 +240,18 @@ Amount_model <- function
         # Declare monthly dataframe to store the SimRain
         pred <- rep(0,length(bin))
         # locate rain days (indexing)
-        indRainDay <- which(bin %in% 1)
+        #indRainDay <- which(bin %in% 1)
         # get number of rain days
-        nRainDay <- length(bin[which(bin==1)])
+        #nRainDay <- length(bin[which(bin==1)])
+        nRainDay <- length(bin)
         # make rain
         #set.seed(68)
         randRain <- rgamma(nRainDay,amount.param[i,1], amount.param[i,2])
         # matching
-        pred <- bin
-        for (k in 1:nRainDay){
-          pred[c(indRainDay)][k] <- randRain[k]
-        }
+        pred <- bin * randRain
+        # for (k in 1:nRainDay){
+        #   pred[c(indRainDay)][k] <- randRain[k]
+        # }
         ls.monthly.simrain[[i]][,j] <- pred
       }
     }
@@ -259,6 +261,27 @@ Amount_model <- function
     print("check the input parameters data")
     return()
   }
+}
+##----------------------------------------##
+amountModel_V2.0 <- function(occurParam,
+                        amountParam,
+                        rep,
+                        indRainDate){
+  #declare simrain dataframe
+  simRainRep <- data.frame(matrix(NA, nrow = indRainDate$nDy, ncol = rep))
+  #Loop for each month
+  for (i in 1:12){
+    #Loop for each replicate
+    for (j in 1:rep){
+      #Create the occurence binary series
+      bin <- MCmodel(length(indRainDate$i.mm[[i]]), occurParam[i,1], occurParam[i,2])
+      #make rain ts from gamma distribution
+      randRain <- rgamma(length(bin), amountParam[i,1], amountParam[i,2])
+      #matching
+      simRainRep[indRainDate$i.mm[[i]],j] <- bin * randRain
+    }
+  }
+  return(simRainRep)
 }
 ##----------------------------------------##
 ##Log-likelihood functions for gamma and exponential distribition
@@ -603,13 +626,18 @@ getExceedProbRep <- function(simFlowRep){
 #Manual WGEN
 manualWGEN <- function(paramMC,
                        paramAmount,
-                       obs.data,
+                       indRainDate,
                        rep = 1
 ){
-  SimRainList <- Amount_model(occur.param = paramMC, amount.param = paramAmount, rep = rep, obs.data = obs.data)
-  simRainRep <- rbind(SimRainList[[1]],SimRainList[[2]],SimRainList[[3]],SimRainList[[4]],SimRainList[[5]],SimRainList[[6]],SimRainList[[7]],SimRainList[[8]],SimRainList[[9]],SimRainList[[10]],SimRainList[[11]],SimRainList[[12]])
-  
-  return(simRainRep$matrix.NA..nrow...length.rain.data.rain.data.month....i..2....)
+
+  # SimRainList <- Amount_model(occur.param = paramMC, amount.param = paramAmount, rep = rep, obs.data = obs.data)
+  # 
+  # 
+  # simRainRep <- rbind(SimRainList[[1]],SimRainList[[2]],SimRainList[[3]],SimRainList[[4]],SimRainList[[5]],SimRainList[[6]],SimRainList[[7]],SimRainList[[8]],SimRainList[[9]],SimRainList[[10]],SimRainList[[11]],SimRainList[[12]])
+
+  simRainRep <- amountModel(occurParam = paramMC, amountParam = paramAmount, indRainDate = indRainDate, rep = rep)
+  return(simRainRep)
+ # return(simRainRep$matrix.NA..nrow...length.rain.data.rain.data.month....i..2....)
 }
 ##---------------------------------------##
 simRaintoFDCModel <- function(paramMC, 
@@ -638,10 +666,10 @@ paramAmount <- data.frame(matrix(NA,12,2))
 paramAmount[,1] <- theta[25:36]; paramAmount[,2] <- theta[37:48]
 
 #Generate sim rain with given parameters above (a vector)
-  simRainRep <- manualWGEN(paramMC, paramAmount, obsRain, rep = 1) #Get Rainfall replicates
+  simRainRep <- amountModel_V2.0(occurParam = paramMC,amountParam = paramAmount, indRainDate = indRainDate, rep = 1) #Get Rainfall replicates
 #Generate sim flow with sim rain
   #add simRain to paramGR4J options
-  paramGR4J[[3]]$Precip <- simRainRep
+  paramGR4J[[3]]$Precip <- simRainRep[,1]
   #RunGR4J model with updated sim rain
   outputGR4J <- runGR4J(paramGR4J)
   #Get sim flow from output GR4J

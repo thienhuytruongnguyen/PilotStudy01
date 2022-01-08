@@ -725,7 +725,6 @@ compareMean5dayTotal <- function(obs,
 plotMaster <- function(WD,
                        s,
                        whichSite,
-                       indRainDate,
                        RainDat,
                        simRainRep,
                        siloInfo,
@@ -753,7 +752,7 @@ plotMaster <- function(WD,
   par(mfrow=c(2,2))
   
   ##Plot return interval for annual maximum rainfall----
-  
+  indRainDate <- makeObsDates(RainDat$Date_Time[paramGR4J[[2]]])
   #call plot function
   compareAnnualMaxima(indObsDate = indRainDate, obs = RainDat$Value, simRep = simRainRep)
   

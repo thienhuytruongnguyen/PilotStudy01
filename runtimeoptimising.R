@@ -92,3 +92,8 @@ amountModel <- function(occurParam,
   }
   return(simRainRep)
 }
+
+set.seed(68)
+simRainRep1 <- amountModel_V2.0(occurParam = paramMC,amountParam = paramAmount, indRainDate = indRainDate, rep = 1)
+
+simRainRep2 <- getSimFlowRep_Opt(theta = theta, paramGR4J = paramGR4J, rep = 100, obsRain = RainDatFormat)

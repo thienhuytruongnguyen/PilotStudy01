@@ -181,7 +181,7 @@ MCmodel <- function(N,PDW,PWW){
   x <- vector(length = N)
   
   #generate a uniform random series U[0,1] to force the occurrence binary series
-  #set.seed(68)
+  set.seed(68)
   U_t <- runif(N,0,1)
   
   for (j in 1:length(U_t)){ #loop for generating the binary occurrence time series
@@ -245,7 +245,7 @@ Amount_model <- function
         #nRainDay <- length(bin[which(bin==1)])
         nRainDay <- length(bin)
         # make rain
-        #set.seed(68)
+        set.seed(68)
         randRain <- rgamma(nRainDay,amount.param[i,1], amount.param[i,2])
         # matching
         pred <- bin * randRain
@@ -276,6 +276,7 @@ amountModel_V2.0 <- function(occurParam,
       #Create the occurence binary series
       bin <- MCmodel(length(indRainDate$i.mm[[i]]), occurParam[i,1], occurParam[i,2])
       #make rain ts from gamma distribution
+      set.seed(68)
       randRain <- rgamma(length(bin), amountParam[i,1], amountParam[i,2])
       #matching
       simRainRep[indRainDate$i.mm[[i]],j] <- bin * randRain
@@ -318,7 +319,7 @@ expo.loglike <- function(theta,obs.data){
 }
 ##----------------------------------------##
 #get SimRain (WGEN model)
-getSimRain <- function(obs.data, rep = 10, mod = "gama", option = "MLE", threshold){
+getSimRain <- function(obs.data, rep = 10, mod = "gama", option = "MLE", threshold, indRainDate){
 
   if (option == "MLE"){
     #Declaring model parameters objects
@@ -330,7 +331,7 @@ getSimRain <- function(obs.data, rep = 10, mod = "gama", option = "MLE", thresho
     amount.param <- fitAmountModel(obs.data,mod)
     
     #Simulating
-    ls.month.sim <- Amount_model(occur.param, amount.param, rep, obs.data)
+    simRainRep <- amountModel_V2.0(occur.param, amount.param, rep, indRainDate)
     
     return(list(ls.month.sim, occur.param, amount.param))
   } else if (option == "MoM"){
@@ -343,9 +344,9 @@ getSimRain <- function(obs.data, rep = 10, mod = "gama", option = "MLE", thresho
     amount.param <- fitAmountModel_MoM(obs.data)
     
     #Simulating
-    ls.month.sim <- Amount_model(occur.param, amount.param, rep, obs.data)
+    simRainRep <- amountModel_V2.0(occur.param, amount.param, rep, indRainDate)
     
-    return(list(ls.month.sim, occur.param, amount.param))
+    return(list(simRainRep, occur.param, amount.param))
   }
 
 }
@@ -696,8 +697,9 @@ getSimFlowRep_Opt <- function(theta,
   paramAmount <- data.frame(matrix(NA,12,2))
   paramAmount[,1] <- theta[25:36]; paramAmount[,2] <- theta[37:48]
   
-  simRainList_Opt <- Amount_model(paramMC, paramAmount, rep = rep, obsRain)
-  simRainRep_Opt <- getSimRainRep(simRainList_Opt)
+  indRainDate <- makeObsDates(obsRain[,1])
+  simRainRep_Opt <- amountModel_V2.0(paramMC, paramAmount, rep = rep, indRainDate = indRainDate)
+  simRainList_Opt <- makeRainList(simRainRep_Opt, indRainDate)
   
   simFlowRep_Opt <-
     getSimFlowRep(simRainRep = simRainRep_Opt, paramGR4J = paramGR4J)
@@ -1067,4 +1069,24 @@ getMean5dayTotal <- function(value,
   }
   return(mean5dayTotal)
 }
-
+##---------------------#
+makeRainList <- function(simRainRep,
+                         indRainDate){
+  simRainList <- list()
+  
+  for (i in 1:12){
+    
+    tempMatrix <-
+      data.frame(matrix(
+        NA,
+        nrow = nrow(simRainRep[indRainDate$i.mm[[i]],]),
+        ncol = ncol(simRainRep)
+      ))
+    
+    for (j in 1:ncol(simRainRep)){
+      tempMatrix[,j] <- simRainRep[indRainDate$i.mm[[i]],j]
+    }
+    simRainList[[i]] <- tempMatrix
+  }
+  return (simRainList)
+}

@@ -820,10 +820,10 @@ plotMaster <- function(WD,
   RainDatFormat <- format_TimeSeries(RainDat)
   
   #wet day amount stats
-  wetday_monthlystats_plot(RainDatFormat, SimRainList[[1]], type = "boxplot")
+  wetday_monthlystats_plot(RainDatFormat, SimRainList, type = "boxplot")
   
   #Monthly total stats
-  monthlytotal_stats_plot(RainDatFormat, SimRainList[[1]], type = "boxplot")
+  monthlytotal_stats_plot(RainDatFormat, SimRainList, type = "boxplot")
   
   #mean 3-5 day total monthly
   compareMean3dayTotal(obs = RainDat$Value, sim = simRainRep, indObsDate = indRainDate)

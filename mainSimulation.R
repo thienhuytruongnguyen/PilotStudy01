@@ -3,18 +3,18 @@ runStart <- Sys.time()
 
 WD<-getwd()
 
-pdf(
-  file = paste(
-    WD,
-    "/Results&Plots/RainfallStats_FlowDurationCurve_EachSite/",
-    "AnnualMaxvsFDCwithNSE",
-    sep = ""
-  ),
-  width = 8.25,
-  height = 11.75
-)
-
-par(mfrow=c(2,2))
+# pdf(
+#   file = paste(
+#     WD,
+#     "/Results&Plots/RainfallStats_FlowDurationCurve_EachSite/",
+#     "AnnualMaxvsFDCwithNSE",
+#     sep = ""
+#   ),
+#   width = 8.25,
+#   height = 11.75
+# )
+# 
+# par(mfrow=c(2,2))
 
 #Read Site and Silo list info----
 flowSiteList <-
@@ -104,27 +104,31 @@ for (i in 1:25) {
   #------------------Rainfall Model----------------------------------
   
   ##Fit the WGEN model and Generate some rainfall replicates
+  indRainDate <- makeObsDates(RainDat[,1]) #get index rain day
+  RainDatFormat <- format_TimeSeries(RainDat)
+  
   rep = 100 #set number of replicates
  
-  SimRainList <-
+  simRainRep <-
     getSimRain(RainDatFormat,
                rep = rep,
                mod = "gama",
                option = "MoM",
-               threshold = 0)
+               threshold = 0,
+               indRainDate = indRainDate)
 
   ##Get SimRain Rep
-  simRainRep <- getSimRainRep(SimRainList[[1]])
+  SimRainList <- makeRainList(simRainRep = simRainRep[[1]], indRainDate = indRainDate)
   
   ##Write rainfall model parameters for the site
   paramWGEN <- data.frame(matrix(NA, ncol = 4, nrow = 12))
   colnames(paramWGEN) <- c("PDW","PWW","a","b")
   
   #Markov Chain Model parameter
-  paramWGEN[1:2] <- SimRainList[[2]][1:2]
+  paramWGEN[1:2] <- simRainRep[[2]][1:2]
   
   #Gama distribution barameter
-  paramWGEN[3:4] <- SimRainList[[3]]
+  paramWGEN[3:4] <- simRainRep[[3]]
   
   #Write to .csv file
   write.csv(
@@ -145,7 +149,7 @@ for (i in 1:25) {
   #------------------Get SimFlow Rep----------------------------------
 
   simFlowRep <-
-    getSimFlowRep(simRainRep = simRainRep, paramGR4J = paramGR4J)
+    getSimFlowRep(simRainRep = simRainRep[[1]], paramGR4J = paramGR4J)
   
   #Get virtual observed flow
   virObsFlow <- outputGR4J$Qsim
@@ -156,7 +160,7 @@ for (i in 1:25) {
             s,
             whichSite,
             RainDat,
-            simRainRep,
+            simRainRep[[1]],
             siloInfo,
             simFlowRep,
             virObsFlow,

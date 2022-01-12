@@ -655,7 +655,7 @@ simRaintoFDCModel <- function(paramMC,
 }
 ##---------------------------------------##
 SSE_FlowDurationCurve <- function(theta,
-                              obsRain,
+                              indRainDate,
                               paramGR4J,
                               virObsFlow){
 #Passing element in theta to WGEN parameter

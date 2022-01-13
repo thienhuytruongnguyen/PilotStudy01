@@ -181,7 +181,7 @@ MCmodel <- function(N,PDW,PWW){
   x <- vector(length = N)
   
   #generate a uniform random series U[0,1] to force the occurrence binary series
-  set.seed(68)
+  #set.seed(68)
   U_t <- runif(N,0,1)
   
   for (j in 1:length(U_t)){ #loop for generating the binary occurrence time series
@@ -276,7 +276,7 @@ amountModel_V2.0 <- function(occurParam,
       #Create the occurence binary series
       bin <- MCmodel(length(indRainDate$i.mm[[i]]), occurParam[i,1], occurParam[i,2])
       #make rain ts from gamma distribution
-      set.seed(68)
+      #set.seed(68)
       randRain <- rgamma(length(bin), amountParam[i,1], amountParam[i,2])
       #matching
       simRainRep[indRainDate$i.mm[[i]],j] <- bin * randRain

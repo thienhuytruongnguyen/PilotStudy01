@@ -19,7 +19,7 @@ upperTheta <- rep(0,48)
 upperTheta[1:24] = 1; upperTheta[25:48] = Inf
 
 
-for (i in 6:12){
+for (i in 16:20){
   
   #Run SCE optim
   optResult <- hydromad::SCEoptim(FUN = SSE_FlowDurationCurve,
@@ -36,3 +36,135 @@ for (i in 6:12){
   
 }
 save.image(file = "SCEOptimC.RData")
+
+#----plotting------------------------------------------------
+simFlowRep_Opt <- getSimFlowRep_Opt(theta = thetaTrial_20,
+                                    paramGR4J = paramGR4J,
+                                    rep = 100,
+                                    obsRain = RainDat)
+
+
+simRainRep_Opt <- getSimRainRep(simFlowRep_Opt[[2]])
+
+indRainDate <- makeObsDates(RainDat[,1])
+
+pdf(
+  file = paste(
+    WD,
+    "/Results&Plots/SCEoptim/allParam.pdf", sep=""),
+  width = 8.25,
+  height = 11.75
+)
+
+par(mfrow=c(2,2))
+
+compareAnnualMaxima(indObsDate = indRainDate, obs = RainDat$Value, simRep = simRainRep_Opt)
+
+siloStation <-
+  paste(
+    " Daily Annual Maxima (Rainfall)",
+    "\n",
+    " ID:",
+    siloInfo$station,
+    "Name:",
+    as.character(siloInfo$name),
+    "\n",
+    "Juradiction:",
+    siloInfo$state,
+    "Lat:",
+    siloInfo$latitude,
+    "Long:",
+    siloInfo$longitude,
+    "Elevation:",
+    siloInfo$elevation,
+    sep = " "
+  )
+
+mtext(siloStation,
+      3,
+      0,
+      cex = 0.5,
+      adj = 0,
+      padj = -0.3)
+
+plotFlowDurationCurve(simFlowRep = simFlowRep_Opt[[1]],
+                      virObsFlow = virObsFlow,
+                      option = "withCILimit")
+
+outlet <-
+  paste(
+    " Flow Duration Curve",
+    "\n",
+    " ID:",
+    whichSite[1],
+    "Juradiction:",
+    whichSite[4],
+    "Area:",
+    whichSite[5],
+    "km^2",
+    "\n",
+    "Lat:",
+    whichSite[2],
+    "Long:",
+    whichSite[3],
+    "From:",
+    start,
+    "To:",
+    end,
+    sep = " "
+  )
+
+mtext(outlet,
+      3,
+      0,
+      cex = .5,
+      adj = 0,
+      padj = -.3)
+indFlowDate <- makeObsDates(RainDat$Date_Time[paramGR4J[[2]]])
+compareAnnualMaxima(indObsDate = indFlowDate,
+                    obs = virObsFlow,
+                    simRep = simFlowRep_Opt[[1]])
+
+mtext("Daily annual maxima (Flow)")
+RainDatFormat <- format_TimeSeries(RainDat)
+wetday_monthlystats_plot(RainDatFormat, simFlowRep_Opt[[2]], type = "boxplot")
+monthlytotal_stats_plot(RainDatFormat, simFlowRep_Opt[[2]], type = "boxplot")
+compareMean3dayTotal(obs = RainDat$Value, sim = simFlowRep_Opt[[3]], indObsDate = indRainDate)
+compareMean5dayTotal(obs = RainDat$Value, sim = simFlowRep_Opt[[3]], indObsDate = indRainDate)
+#Dry Spell Plot
+month <-
+  c("Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec")
+
+maxSpell <- 10
+
+for (m in 1:12){
+  compareDrySpell(
+    monthlyObsRain = RainDat$Value[indRainDate$i.mm[[m]]],
+    monthlySimRain = simRainRep_Opt[indRainDate$i.mm[[m]], ],
+    maxSpell = maxSpell
+  )
+  mtext(paste("Dry Spell: ", paste(month[m]), sep=""))
+  
+  #Wet Spell Plot
+  compareWetSpell(
+    monthlyObsRain = RainDat$Value[indRainDate$i.mm[[m]]],
+    monthlySimRain = simRainRep_Opt[indRainDate$i.mm[[m]], ],
+    maxSpell = maxSpell
+  )
+  mtext(paste("Wet Spell: ", paste(month[m]), sep=""))
+}
+
+dev.off()
+
+

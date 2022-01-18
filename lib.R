@@ -284,6 +284,32 @@ amountModel_V2.0 <- function(occurParam,
   }
   return(simRainRep)
 }
+
+##----------------------------------------##
+amountModel_V3.0 <- function(occurParam,
+                             amountParam,
+                             rep,
+                             indRainDate){
+  #declare simrain dataframe
+  simRainRep <- data.frame(matrix(NA, nrow = indRainDate$nDy, ncol = rep))
+  #Loop for each month
+  for (i in 1:12){
+    #Loop for each replicate
+    for (j in 1:rep){
+      #Create the occurence binary series
+      bin <- MCmodel(length(indRainDate$i.mm[[i]]), occurParam[i,1], occurParam[i,2])
+      #make rain ts from gamma distribution
+      #set.seed(68)
+      randRain <- rgamma(length(bin[bin==1]), amountParam[i,1], amountParam[i,2])
+      
+      bin[bin==1] <- randRain
+      #matching
+      simRainRep[indRainDate$i.mm[[i]],j] <- bin
+    }
+  }
+  return(simRainRep)
+}
+
 ##----------------------------------------##
 ##Log-likelihood functions for gamma and exponential distribition
 #Gamma distribution
@@ -636,7 +662,7 @@ manualWGEN <- function(paramMC,
   # 
   # simRainRep <- rbind(SimRainList[[1]],SimRainList[[2]],SimRainList[[3]],SimRainList[[4]],SimRainList[[5]],SimRainList[[6]],SimRainList[[7]],SimRainList[[8]],SimRainList[[9]],SimRainList[[10]],SimRainList[[11]],SimRainList[[12]])
 
-  simRainRep <- amountModel(occurParam = paramMC, amountParam = paramAmount, indRainDate = indRainDate, rep = rep)
+  simRainRep <- Amount_model(occurParam = paramMC, amountParam = paramAmount, indRainDate = indRainDate, rep = rep)
   return(simRainRep)
  # return(simRainRep$matrix.NA..nrow...length.rain.data.rain.data.month....i..2....)
 }

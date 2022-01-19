@@ -196,6 +196,30 @@ MCmodel <- function(N,PDW,PWW){
   return(x)
 }
 ##----------------------------------------##
+##Occurence model (WGEN)
+MCmodel_V2.0 <- function(N,PDW,PWW){
+  ## Assume P_c = PDW for January
+  P_c = PDW
+  
+  #Assign an dataframe to store the occurrence binary series
+  x <- vector(length = N)
+  
+  #generate a uniform random series U[0,1] to force the occurrence binary series
+  #set.seed(68)
+  U_t <- runif(N,0,1)
+  
+  for (j in 1:length(U_t)){ #loop for generating the binary occurrence time series
+    if (U_t[j] < P_c){ #If statement to sample a 1 or 0 rainfall occurrence from the uniform random series U_t and P_C
+      x[j] = 1
+    }else{x[j] = 0}
+    
+    if(x[j] == 1){ #If statement to Update the P_c for the next sampling
+      P_c = PWW
+    }else{P_c = PDW}
+  }
+  return(x)
+}
+##----------------------------------------##
 ##Amount model (WGEN)
 Amount_model <- function
 (occur.param,##<<Markov model parameters, PWW and PDW
@@ -232,7 +256,7 @@ Amount_model <- function
   
   else if (length(amount.param[1,]) == 2){ #If gamma
     for (i in 1:12){
-      #print(i)
+      print(i)
       ls.monthly.simrain[[i]] <- data.frame(matrix(NA,nrow=length(rain.data[rain.data$month==i,2]),ncol=rep))
       for (j in 1:rep){
         # Create the occurrence binary series
@@ -240,18 +264,18 @@ Amount_model <- function
         # Declare monthly dataframe to store the SimRain
         pred <- rep(0,length(bin))
         # locate rain days (indexing)
-        #indRainDay <- which(bin %in% 1)
+        indRainDay <- which(bin %in% 1)
         # get number of rain days
-        #nRainDay <- length(bin[which(bin==1)])
-        nRainDay <- length(bin)
+        nRainDay <- length(bin[which(bin==1)])
+        
         # make rain
         set.seed(68)
         randRain <- rgamma(nRainDay,amount.param[i,1], amount.param[i,2])
         # matching
-        pred <- bin * randRain
-        # for (k in 1:nRainDay){
-        #   pred[c(indRainDay)][k] <- randRain[k]
-        # }
+        
+        for (k in 1:nRainDay){
+          pred[c(indRainDay)][k] <- randRain[k]
+        }
         ls.monthly.simrain[[i]][,j] <- pred
       }
     }
@@ -276,7 +300,7 @@ amountModel_V2.0 <- function(occurParam,
       #Create the occurence binary series
       bin <- MCmodel(length(indRainDate$i.mm[[i]]), occurParam[i,1], occurParam[i,2])
       #make rain ts from gamma distribution
-      #set.seed(68)
+      set.seed(68)
       randRain <- rgamma(length(bin), amountParam[i,1], amountParam[i,2])
       #matching
       simRainRep[indRainDate$i.mm[[i]],j] <- bin * randRain
@@ -357,7 +381,7 @@ getSimRain <- function(obs.data, rep = 10, mod = "gama", option = "MLE", thresho
     amount.param <- fitAmountModel(obs.data,mod)
     
     #Simulating
-    simRainRep <- amountModel_V2.0(occur.param, amount.param, rep, indRainDate)
+    simRainRep <- amountModel_V3.0(occur.param, amount.param, rep, indRainDate)
     
     return(list(ls.month.sim, occur.param, amount.param))
   } else if (option == "MoM"){
@@ -370,7 +394,7 @@ getSimRain <- function(obs.data, rep = 10, mod = "gama", option = "MLE", thresho
     amount.param <- fitAmountModel_MoM(obs.data)
     
     #Simulating
-    simRainRep <- amountModel_V2.0(occur.param, amount.param, rep, indRainDate)
+    simRainRep <- amountModel_V3.0(occur.param, amount.param, rep, indRainDate)
     
     return(list(simRainRep, occur.param, amount.param))
   }
@@ -613,7 +637,20 @@ getExceedProb <- function(flow){
   P[,4] <- P[,3]/(nrow(P)+1) #calculate exceedance probability
   return(P[,c(4,2)])
 }
+##---------------------------------------##
+##Flow duration curve
+getExceedProb_V2.0 <- function(flow){
 
+  flow <- flow[order(flow, decreasing = TRUE)]
+  Rank <- 1:length(flow)
+  #sort flow value in terms of magnitude
+  DF <- data.frame(cbind(flow, Rank))
+  DF$Prob <- DF$Rank/(length(DF$Rank)+1) #rank
+   #calculate exceedance probability
+  return(DF[,c(3,1)])
+}
+
+##---------------------------------------##
 ##---------------------------------------##
 ##Get simflow replicates
 getSimFlowRep <- function(simRainRep,paramGR4J){
@@ -653,18 +690,17 @@ getExceedProbRep <- function(simFlowRep){
 #Manual WGEN
 manualWGEN <- function(paramMC,
                        paramAmount,
-                       indRainDate,
+                       obs.data,
                        rep = 1
 ){
 
-  # SimRainList <- Amount_model(occur.param = paramMC, amount.param = paramAmount, rep = rep, obs.data = obs.data)
-  # 
-  # 
-  # simRainRep <- rbind(SimRainList[[1]],SimRainList[[2]],SimRainList[[3]],SimRainList[[4]],SimRainList[[5]],SimRainList[[6]],SimRainList[[7]],SimRainList[[8]],SimRainList[[9]],SimRainList[[10]],SimRainList[[11]],SimRainList[[12]])
+  SimRainList <- Amount_model(occur.param = paramMC, amount.param = paramAmount, rep = rep, obs.data = obs.data)
 
-  simRainRep <- Amount_model(occurParam = paramMC, amountParam = paramAmount, indRainDate = indRainDate, rep = rep)
-  return(simRainRep)
- # return(simRainRep$matrix.NA..nrow...length.rain.data.rain.data.month....i..2....)
+
+  simRainRep <- rbind(SimRainList[[1]],SimRainList[[2]],SimRainList[[3]],SimRainList[[4]],SimRainList[[5]],SimRainList[[6]],SimRainList[[7]],SimRainList[[8]],SimRainList[[9]],SimRainList[[10]],SimRainList[[11]],SimRainList[[12]])
+
+
+ return(simRainRep$matrix.NA..nrow...length.rain.data.rain.data.month....i..2....)
 }
 ##---------------------------------------##
 simRaintoFDCModel <- function(paramMC, 
@@ -680,7 +716,7 @@ simRaintoFDCModel <- function(paramMC,
   return(simFlowRep)
 }
 ##---------------------------------------##
-SSE_FlowDurationCurve <- function(theta,
+SSE_FlowDurationCurve_V2.0 <- function(theta,
                               indRainDate,
                               paramGR4J,
                               virObsFlow){
@@ -708,6 +744,107 @@ paramAmount[,1] <- theta[25:36]; paramAmount[,2] <- theta[37:48]
   
 #Calculate the Sum of square Error
   err <- simFDC$Flow - virObsFDC$Flow
+  SSE <- sum(err^2)
+  #SSE <- SSE*100
+  return(SSE)
+}
+##---------------------------------------##
+##
+SSE_FlowDurationCurve_V1.0 <- function(theta,
+                                       obs.data,
+paramGR4J,
+virObsFlow){
+  #Passing element in theta to WGEN parameter
+  #Occurence model parameters
+  paramMC <- data.frame(matrix(NA,12,2))
+  paramMC[,1] <- theta[1:12]; paramMC[,2] <- theta[13:24]
+  #Amount model parameters
+  paramAmount <- data.frame(matrix(NA,12,2))
+  paramAmount[,1] <- theta[25:36]; paramAmount[,2] <- theta[37:48]
+  
+  #Generate sim rain with given parameters above (a vector)
+  simRainRep <- manualWGEN(paramMC = paramMC, paramAmount = paramAmount, obs.data = obs.data, rep = 1) #Get Rainfall replicates
+  #Generate sim flow with sim rain
+  #add simRain to paramGR4J options
+  paramGR4J[[3]]$Precip <- simRainRep
+  #RunGR4J model with updated sim rain
+  outputGR4J <- runGR4J(paramGR4J)
+  #Get sim flow from output GR4J
+  simFlowRep <- outputGR4J$Qsim
+  
+  #Calculate Exceedance Probability for sim flow and virobs flow
+  simFDC <- getExceedProb(simFlowRep)
+  virObsFDC <- getExceedProb(virObsFlow)
+  
+  #Calculate the Sum of square Error
+  err <- simFDC$Flow - virObsFDC$Flow
+  SSE <- sum(err^2)
+  #SSE <- SSE*100
+  return(SSE)
+}
+##---------------------------------------##
+##
+SSE_FlowDurationCurve_V3.0 <- function(theta,
+indRainDate,
+paramGR4J, inputGR4J, runOptionGR4J,
+virObsFDC){
+  #Passing element in theta to WGEN parameter
+  #Occurence model parameters
+  paramMC <- data.frame(matrix(NA,12,2))
+  paramMC[,1] <- theta[1:12]; paramMC[,2] <- theta[13:24]
+  #Amount model parameters
+  paramAmount <- data.frame(matrix(NA,12,2))
+  paramAmount[,1] <- theta[25:36]; paramAmount[,2] <- theta[37:48]
+  
+  #Generate sim rain with given parameters above (a vector)
+  simRainRep <- amountModel_V3.0(occurParam = paramMC,amountParam = paramAmount, indRainDate = indRainDate, rep = 1) #Get Rainfall replicates
+  #Generate sim flow with sim rain
+  #add simRain to paramGR4J options
+  inputGR4J[[2]] <- simRainRep[,1]
+  #RunGR4J model with updated sim rain
+  outputGR4J <- airGR::RunModel_GR4J(InputsModel = inputGR4J, RunOptions = runOptionGR4J, Param = paramGR4J)
+  #Get sim flow from output GR4J
+  simFlowRep <- outputGR4J$Qsim
+  
+  #Calculate Exceedance Probability for sim flow and virobs flow
+  simFDC <- getExceedProb(simFlowRep)
+  
+  #Calculate the Sum of square Error
+  err <- simFDC$Flow - virObsFDC
+  SSE <- sum(err^2)
+  #SSE <- SSE*100
+  return(SSE)
+}
+##---------------------------------------##
+##---------------------------------------##
+##
+SSE_FlowDurationCurve_V4.0 <- function(theta,
+                                       indRainDate,
+                                       paramGR4J, inputGR4J, runOptionGR4J,
+                                       virObsFDC){
+  #Passing element in theta to WGEN parameter
+  #Occurence model parameters
+  paramMC <- data.frame(matrix(NA,12,2))
+  paramMC[,1] <- theta[1:12]; paramMC[,2] <- theta[13:24]
+  #Amount model parameters
+  paramAmount <- data.frame(matrix(NA,12,2))
+  paramAmount[,1] <- theta[25:36]; paramAmount[,2] <- theta[37:48]
+  
+  #Generate sim rain with given parameters above (a vector)
+  simRainRep <- amountModel_V3.0(occurParam = paramMC,amountParam = paramAmount, indRainDate = indRainDate, rep = 1) #Get Rainfall replicates
+  #Generate sim flow with sim rain
+  #add simRain to paramGR4J options
+  inputGR4J[[2]] <- simRainRep[,1]
+  #RunGR4J model with updated sim rain
+  outputGR4J <- airGR::RunModel_GR4J(InputsModel = inputGR4J, RunOptions = runOptionGR4J, Param = paramGR4J)
+  #Get sim flow from output GR4J
+  simFlowRep <- outputGR4J$Qsim
+  
+  #Calculate Exceedance Probability for sim flow and virobs flow
+  simFDC <- getExceedProb_V2.0(simFlowRep)
+  
+  #Calculate the Sum of square Error
+  err <- simFDC$flow - virObsFDC
   SSE <- sum(err^2)
   #SSE <- SSE*100
   return(SSE)

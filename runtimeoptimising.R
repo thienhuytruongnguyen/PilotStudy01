@@ -229,19 +229,130 @@ SSE2 <- function(theta,
   #print(e-s)
   return(SSE)
 }
-sse <- SSE(theta = iniTheta,
-              indRainDate = indRainDate,
-              paramGR4J = paramGR4J,
-              virObsFlow = virObsFlow)
+
+#------------------#
+OF_1 <- quote(
+  SSE_FlowDurationCurve_V1.0(
+    theta = iniTheta,
+    obs.data = RainDatFormat,
+    paramGR4J = paramGR4J,
+    virObsFlow = virObsFlow
+  )
+)
+#------------------#
+OF_2 <- quote(
+  SSE_FlowDurationCurve_V2.0(
+    theta = iniTheta,
+    indRainDate = indRainDate,
+    paramGR4J = paramGR4J,
+    virObsFlow = virObsFlow
+  )
+)
+#------------------#
+virObsFDC <- getExceedProb(virObsFlow)
+OF_3 <- quote(
+  SSE_FlowDurationCurve_V3.0(
+    theta = iniTheta,
+    indRainDate = indRainDate,
+    paramGR4J = paramGR4J[[1]],
+    inputGR4J = paramGR4J[[3]],
+    runOptionGR4J = paramGR4J[[4]],
+    virObsFDC = virObsFDC$Flow
+  )
+)
+#------------------#
+OF_4 <- quote(
+SSE_FlowDurationCurve_V4.0(
+  theta = iniTheta,
+  indRainDate = indRainDate,
+  paramGR4J = paramGR4J[[1]],
+  inputGR4J = paramGR4J[[3]],
+  runOptionGR4J = paramGR4J[[4]],
+  virObsFDC = virObsFDC$Flow
+)
+)
+#------------------#
+OFList <- list(OF_1, OF_2, OF_3, OF_4)
+#------------------#
+res <- microbenchmark::microbenchmark(list = OFList)
+#------------------#
+nameList <- c("OF_1", "OF_2", "OF_3", "OF_4")
+#------------------#
+boxplot(res, names = nameList)
+#------------------#
+res
+#------------------#
+
+
+########################################################
+paramMC <- data.frame(matrix(NA,12,2))
+paramMC[,1] <- iniTheta[1:12]; paramMC[,2] <- iniTheta[13:24]
+#Amount model parameters
+paramAmount <- data.frame(matrix(NA,12,2))
+paramAmount[,1] <- iniTheta[25:36]; paramAmount[,2] <- iniTheta[37:48]
+#------------------#
+model_V1.0 <-
+  quote(
+    Amount_model(
+      occur.param = paramMC,
+      amount.param = paramAmount,
+      obs.data = RainDatFormat,
+      rep = 1
+    )
+  )
+#------------------#
+model_V2.0 <-
+  quote(
+    amountModel_V2.0(
+      occurParam = paramMC,
+      amountParam = paramAmount,
+      indRainDate = indRainDate,
+      rep = 1
+    )
+  )
+#------------------#
+model_V3.0 <-
+  quote(
+    amountModel_V3.0(
+      occurParam = paramMC,
+      amountParam = paramAmount,
+      indRainDate = indRainDate,
+      rep = 1
+    )
+  )
+#------------------#
+#
+OFList <- list(model_V1.0, model_V2.0, model_V3.0)
+#------------------#
+res <- microbenchmark::microbenchmark(list = OFList)
+#------------------#
+nameList <- c("V1.0", "V2.0", "V3.0")
+#------------------#
+boxplot(res, names = nameList)
+#------------------#
+res
+#------------------#
+#
+exceed_V1.0 <- quote(getExceedProb(virObsFlow))
+exceed_V2.0 <- quote(getExceedProb_V2.0(virObsFlow))
+exceed_V3.0 <- quote(getExceedProb_V3.0(virObsFlow))
+#------------------#
+OFList <- list(exceed_V1.0, exceed_V2.0, exceed_V3.0)
+#------------------#
+res <- microbenchmark::microbenchmark(list = OFList)
+#------------------#
+nameList <- c("V1.0", "V2.0", "V3.0")
+#------------------#
+boxplot(res, names = nameList)
+#------------------#
+res
+#------------------#
+#
+head(getExceedProb_V3.0(virObsFlow))
 
 
 
-res <- microbenchmark(SSE2(theta = iniTheta,
-                          indRainDate = indRainDate,
-                          paramGR4J = paramGR4J,
-                          virObsFlow = virObsFlow),SSE_FlowDurationCurve(theta = iniTheta,
-                                                       indRainDate = indRainDate,
-                                                       paramGR4J = paramGR4J,
-                                                       virObsFlow = virObsFlow))
+MCmodel <- quote(MCmodel(length(RainDatFormat[RainDatFormat$month==1,2]), paramMC[1,1], paramAmount[1,2]))
 
-ggplot2::autoplot(res)
+runT <- microbenchmark::microbenchmark(MCmodel(length(RainDatFormat[RainDatFormat$month==1,2]), paramMC[1,1], paramAmount[1,2]))
+runT

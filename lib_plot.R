@@ -734,6 +734,8 @@ plotMaster <- function(WD,
                        end,
                        paramGR4J,
                        SimRainList){
+  require(e1071)
+  require(moments)
   pdf(
     file = paste(
       WD,

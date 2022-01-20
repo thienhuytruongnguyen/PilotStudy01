@@ -272,11 +272,22 @@ SSE_FlowDurationCurve_V4.0(
 )
 )
 #------------------#
-OFList <- list(OF_1, OF_2, OF_3, OF_4)
+OF_5 <- quote(
+  SSE_FlowDurationCurve_V5.0(
+    theta = iniTheta,
+    indRainDate = indRainDate,
+    paramGR4J = paramGR4J[[1]],
+    inputGR4J = paramGR4J[[3]],
+    runOptionGR4J = paramGR4J[[4]],
+    virObsFDC = virObsFDC$Flow
+  )
+)
+#------------------#
+OFList <- list(OF_1, OF_2, OF_3, OF_4, OF_5)
 #------------------#
 res <- microbenchmark::microbenchmark(list = OFList)
 #------------------#
-nameList <- c("OF_1", "OF_2", "OF_3", "OF_4")
+nameList <- c("OF_1", "OF_2", "OF_3", "OF_4", "OF_5")
 #------------------#
 boxplot(res, names = nameList)
 #------------------#
@@ -297,7 +308,7 @@ model_V1.0 <-
       occur.param = paramMC,
       amount.param = paramAmount,
       obs.data = RainDatFormat,
-      rep = 1
+      rep = 10
     )
   )
 #------------------#
@@ -307,7 +318,7 @@ model_V2.0 <-
       occurParam = paramMC,
       amountParam = paramAmount,
       indRainDate = indRainDate,
-      rep = 1
+      rep = 10
     )
   )
 #------------------#
@@ -317,16 +328,26 @@ model_V3.0 <-
       occurParam = paramMC,
       amountParam = paramAmount,
       indRainDate = indRainDate,
-      rep = 1
+      rep = 10
+    )
+  )
+#------------------#
+model_V4.0 <-
+  quote(
+    amountModel_V4.0(
+      occurParam = paramMC,
+      amountParam = paramAmount,
+      indRainDate = indRainDate,
+      rep = 10
     )
   )
 #------------------#
 #
-OFList <- list(model_V1.0, model_V2.0, model_V3.0)
+OFList <- list(model_V1.0, model_V2.0, model_V3.0, model_V4.0)
 #------------------#
 res <- microbenchmark::microbenchmark(list = OFList)
 #------------------#
-nameList <- c("V1.0", "V2.0", "V3.0")
+nameList <- c("V1.0", "V2.0", "V3.0", "V4.0")
 #------------------#
 boxplot(res, names = nameList)
 #------------------#

@@ -195,30 +195,7 @@ MCmodel <- function(N,PDW,PWW){
   }
   return(x)
 }
-##----------------------------------------##
-##Occurence model (WGEN)
-MCmodel_V2.0 <- function(N,PDW,PWW){
-  ## Assume P_c = PDW for January
-  P_c = PDW
-  
-  #Assign an dataframe to store the occurrence binary series
-  x <- vector(length = N)
-  
-  #generate a uniform random series U[0,1] to force the occurrence binary series
-  #set.seed(68)
-  U_t <- runif(N,0,1)
-  
-  for (j in 1:length(U_t)){ #loop for generating the binary occurrence time series
-    if (U_t[j] < P_c){ #If statement to sample a 1 or 0 rainfall occurrence from the uniform random series U_t and P_C
-      x[j] = 1
-    }else{x[j] = 0}
-    
-    if(x[j] == 1){ #If statement to Update the P_c for the next sampling
-      P_c = PWW
-    }else{P_c = PDW}
-  }
-  return(x)
-}
+
 ##----------------------------------------##
 ##Amount model (WGEN)
 Amount_model <- function
@@ -322,6 +299,50 @@ amountModel_V3.0 <- function(occurParam,
     for (j in 1:rep){
       #Create the occurence binary series
       bin <- MCmodel(length(indRainDate$i.mm[[i]]), occurParam[i,1], occurParam[i,2])
+      #make rain ts from gamma distribution
+      #set.seed(68)
+      randRain <- rgamma(length(bin[bin==1]), amountParam[i,1], amountParam[i,2])
+      
+      bin[bin==1] <- randRain
+      #matching
+      simRainRep[indRainDate$i.mm[[i]],j] <- bin
+    }
+  }
+  return(simRainRep)
+}
+
+#---MC model in C++------#
+Rcpp::cppFunction('NumericVector MCmodel_C(int n,double PDW, double PWW, NumericVector U_t){
+  double P_c = PDW;
+  NumericVector day = clone(U_t);
+  for (int i = 0; i < n; ++i){
+    if (U_t[i] < P_c){
+    day[i] = 1;
+    } else{
+    day[i] = 0;
+    }
+    if (day[i] == 1){
+    P_c = PWW;
+    } else{
+    P_c = PDW;
+    } 
+  }
+  return day;
+}')
+##----------------------------------------##
+amountModel_V4.0 <- function(occurParam,
+                             amountParam,
+                             rep,
+                             indRainDate){
+  #declare simrain dataframe
+  simRainRep <- data.frame(matrix(NA, nrow = indRainDate$nDy, ncol = rep))
+  #Loop for each month
+  for (i in 1:12){
+    #Loop for each replicate
+    for (j in 1:rep){
+      #Create the occurence binary series
+      U_t <- runif(length(indRainDate$i.mm[[i]]),0,1)
+      bin <- MCmodel_C(length(U_t), occurParam[i,1], occurParam[i,2], U_t)
       #make rain ts from gamma distribution
       #set.seed(68)
       randRain <- rgamma(length(bin[bin==1]), amountParam[i,1], amountParam[i,2])
@@ -832,6 +853,40 @@ SSE_FlowDurationCurve_V4.0 <- function(theta,
   
   #Generate sim rain with given parameters above (a vector)
   simRainRep <- amountModel_V3.0(occurParam = paramMC,amountParam = paramAmount, indRainDate = indRainDate, rep = 1) #Get Rainfall replicates
+  #Generate sim flow with sim rain
+  #add simRain to paramGR4J options
+  inputGR4J[[2]] <- simRainRep[,1]
+  #RunGR4J model with updated sim rain
+  outputGR4J <- airGR::RunModel_GR4J(InputsModel = inputGR4J, RunOptions = runOptionGR4J, Param = paramGR4J)
+  #Get sim flow from output GR4J
+  simFlowRep <- outputGR4J$Qsim
+  
+  #Calculate Exceedance Probability for sim flow and virobs flow
+  simFDC <- getExceedProb_V2.0(simFlowRep)
+  
+  #Calculate the Sum of square Error
+  err <- simFDC$flow - virObsFDC
+  SSE <- sum(err^2)
+  #SSE <- SSE*100
+  return(SSE)
+}
+
+##---------------------------------------##
+##
+SSE_FlowDurationCurve_V5.0 <- function(theta,
+                                       indRainDate,
+                                       paramGR4J, inputGR4J, runOptionGR4J,
+                                       virObsFDC){
+  #Passing element in theta to WGEN parameter
+  #Occurence model parameters
+  paramMC <- data.frame(matrix(NA,12,2))
+  paramMC[,1] <- theta[1:12]; paramMC[,2] <- theta[13:24]
+  #Amount model parameters
+  paramAmount <- data.frame(matrix(NA,12,2))
+  paramAmount[,1] <- theta[25:36]; paramAmount[,2] <- theta[37:48]
+  
+  #Generate sim rain with given parameters above (a vector)
+  simRainRep <- amountModel_V4.0(occurParam = paramMC,amountParam = paramAmount, indRainDate = indRainDate, rep = 1) #Get Rainfall replicates
   #Generate sim flow with sim rain
   #add simRain to paramGR4J options
   inputGR4J[[2]] <- simRainRep[,1]

@@ -283,15 +283,16 @@ OF_5 <- quote(
   )
 )
 #------------------#
-OFList <- list(OF_1, OF_2, OF_3, OF_4, OF_5)
+OFList <- list(OF_1,OF_5)
 #------------------#
 res <- microbenchmark::microbenchmark(list = OFList)
 #------------------#
-nameList <- c("OF_1", "OF_2", "OF_3", "OF_4", "OF_5")
+nameList <- c("OF_1","OF_5")
 #------------------#
-boxplot(res, names = nameList)
+boxplot(res, names = nameList, log = FALSE)
 #------------------#
 res
+ggplot2::autoplot(res, log = FALSE)
 #------------------#
 
 
@@ -308,7 +309,7 @@ model_V1.0 <-
       occur.param = paramMC,
       amount.param = paramAmount,
       obs.data = RainDatFormat,
-      rep = 10
+      rep = 1
     )
   )
 #------------------#
@@ -318,7 +319,7 @@ model_V2.0 <-
       occurParam = paramMC,
       amountParam = paramAmount,
       indRainDate = indRainDate,
-      rep = 10
+      rep = 1
     )
   )
 #------------------#
@@ -328,7 +329,7 @@ model_V3.0 <-
       occurParam = paramMC,
       amountParam = paramAmount,
       indRainDate = indRainDate,
-      rep = 10
+      rep = 1
     )
   )
 #------------------#
@@ -337,17 +338,24 @@ model_V4.0 <-
     amountModel_V4.0(
       occurParam = paramMC,
       amountParam = paramAmount,
-      indRainDate = indRainDate,
-      rep = 10
+      indRainDate = indRainDate$i.mm,
+      rep = 1
     )
   )
 #------------------#
+model_V1.1 <-
+  quote(manualWGEN(
+    paramMC = paramMC,
+    paramAmount = paramAmount,
+    obs.data = RainDatFormat,
+    rep = 1
+  ))
 #
-OFList <- list(model_V1.0, model_V2.0, model_V3.0, model_V4.0)
+OFList <- list(model_V1.0, model_V1.1, model_V2.0, model_V3.0, model_V4.0)
 #------------------#
 res <- microbenchmark::microbenchmark(list = OFList)
 #------------------#
-nameList <- c("V1.0", "V2.0", "V3.0", "V4.0")
+nameList <- c("V1.0", "V1.1", "V2.0", "V3.0", "V4.0")
 #------------------#
 boxplot(res, names = nameList)
 #------------------#
@@ -377,3 +385,36 @@ MCmodel <- quote(MCmodel(length(RainDatFormat[RainDatFormat$month==1,2]), paramM
 
 runT <- microbenchmark::microbenchmark(MCmodel(length(RainDatFormat[RainDatFormat$month==1,2]), paramMC[1,1], paramAmount[1,2]))
 runT
+
+
+
+getSSE <- function(simFDC, virObsFDC) {
+  err <- simFDC$Flow - virObsFDC$Flow
+  SSE <- sum(err^2)
+  return(SSE)
+}
+
+getSSE2 <- function(simFDC, virObsFDC){
+  SSE <- sum((simFDC$Flow - virObsFDC$Flow)^2)
+  return(SSE)
+}
+simFDC <- getExceedProb(simFlowRep[,1])
+
+res <- microbenchmark::microbenchmark(getSSE(simFDC, virObsFDC), getSSE2(simFDC, virObsFDC))
+boxplot(res)
+res
+
+
+
+
+simrep<-amountModel_V4.0(
+  occurParam = paramMC,
+  amountParam = paramAmount,
+  indRainDate = indRainDate,
+  rep = 100
+)
+simRep2 <- manualWGEN(paramMC = paramMC, paramAmount = paramAmount, obs.data = RainDatFormat, rep = 1)
+simRep1 <- simrep[,1]
+
+
+

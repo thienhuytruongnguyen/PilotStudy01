@@ -259,7 +259,7 @@ Amount_model <- function
     return(ls.monthly.simrain)
   }
   else{
-    print("check the input parameters data")
+    print("check the input parameters")
     return()
   }
 }
@@ -335,7 +335,7 @@ amountModel_V4.0 <- function(occurParam,
                              rep,
                              indRainDate){
   #declare simrain dataframe
-  simRainRep <- data.frame(matrix(NA, nrow = indRainDate$nDy, ncol = rep))
+  simRainRep <- matrix(NA, nrow = indRainDate$nDy, ncol = rep)
   #Loop for each month
   for (i in 1:12){
     #Loop for each replicate
@@ -402,7 +402,7 @@ getSimRain <- function(obs.data, rep = 10, mod = "gama", option = "MLE", thresho
     amount.param <- fitAmountModel(obs.data,mod)
     
     #Simulating
-    simRainRep <- amountModel_V3.0(occur.param, amount.param, rep, indRainDate)
+    simRainRep <- amountModel_V4.0(occur.param, amount.param, rep, indRainDate)
     
     return(list(ls.month.sim, occur.param, amount.param))
   } else if (option == "MoM"){
@@ -721,7 +721,8 @@ manualWGEN <- function(paramMC,
   simRainRep <- rbind(SimRainList[[1]],SimRainList[[2]],SimRainList[[3]],SimRainList[[4]],SimRainList[[5]],SimRainList[[6]],SimRainList[[7]],SimRainList[[8]],SimRainList[[9]],SimRainList[[10]],SimRainList[[11]],SimRainList[[12]])
 
 
- return(simRainRep$matrix.NA..nrow...length.rain.data.rain.data.month....i..2....)
+ #return(simRainRep$matrix.NA..nrow...length.rain.data.rain.data.month....i..2....)
+  return(simRainRep)
 }
 ##---------------------------------------##
 simRaintoFDCModel <- function(paramMC, 
@@ -787,7 +788,7 @@ virObsFlow){
   simRainRep <- manualWGEN(paramMC = paramMC, paramAmount = paramAmount, obs.data = obs.data, rep = 1) #Get Rainfall replicates
   #Generate sim flow with sim rain
   #add simRain to paramGR4J options
-  paramGR4J[[3]]$Precip <- simRainRep
+  paramGR4J[[3]]$Precip <- simRainRep[,1]
   #RunGR4J model with updated sim rain
   outputGR4J <- runGR4J(paramGR4J)
   #Get sim flow from output GR4J
@@ -875,14 +876,17 @@ SSE_FlowDurationCurve_V4.0 <- function(theta,
 ##
 SSE_FlowDurationCurve_V5.0 <- function(theta,
                                        indRainDate,
-                                       paramGR4J, inputGR4J, runOptionGR4J,
-                                       virObsFDC){
+                                       paramGR4J,
+                                       inputGR4J,
+                                       runOptionGR4J,
+                                       virObsFDC) {
+  
   #Passing element in theta to WGEN parameter
   #Occurence model parameters
-  paramMC <- data.frame(matrix(NA,12,2))
+  paramMC <- matrix(NA,12,2)
   paramMC[,1] <- theta[1:12]; paramMC[,2] <- theta[13:24]
   #Amount model parameters
-  paramAmount <- data.frame(matrix(NA,12,2))
+  paramAmount <- matrix(NA,12,2)
   paramAmount[,1] <- theta[25:36]; paramAmount[,2] <- theta[37:48]
   
   #Generate sim rain with given parameters above (a vector)

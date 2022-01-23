@@ -63,7 +63,7 @@ SSE_OF2 <- function(theta,
   #Generate sim rain with given parameters above (a vector)
 
   simRainRep <-
-    amountModel_V4.0(
+    WGEN_V4.0(
       occurParam = paramMC,
       amountParam = paramAmount,
       indRainDate = indRainDate,
@@ -135,7 +135,7 @@ SSE <- function(theta,
   #print(e2-s2)
   #Generate sim rain with given parameters above (a vector)
   #s3 = Sys.time()
-  simRainRep <- amountModel_V3.0(occurParam = paramMC,amountParam = paramAmount, indRainDate = indRainDate, rep = 1)
+  simRainRep <- WGEN_V3.0(occurParam = paramMC,amountParam = paramAmount, indRainDate = indRainDate, rep = 1)
   
   #e3 = Sys.time()
   #print(e3-s3)
@@ -199,7 +199,7 @@ SSE2 <- function(theta,
   #print(e2-s2)
   #Generate sim rain with given parameters above (a vector)
   #s3 = Sys.time()
-  simRainRep <- amountModel_V3.0(occurParam = paramMC,amountParam = paramAmount, indRainDate = indRainDate, rep = 1)
+  simRainRep <- WGEN_V3.0(occurParam = paramMC,amountParam = paramAmount, indRainDate = indRainDate, rep = 1)
   
   #e3 = Sys.time()
   #print(e3-s3)
@@ -295,11 +295,11 @@ OF_5 <- quote(
   )
 )
 #------------------#
-OFList <- list(OF_1,OF_5)
+OFList <- list(OF_1,OF_2,OF_3,OF_4,OF_5)
 #------------------#
 res <- microbenchmark::microbenchmark(list = OFList)
 #------------------#
-nameList <- c("OF_1","OF_5")
+nameList <- c("OF_1","OF_2","OF_3","OF_3.1","OF_4")
 #------------------#
 boxplot(res, names = nameList, log = FALSE)
 #------------------#
@@ -307,7 +307,13 @@ res
 ggplot2::autoplot(res, log = FALSE)
 #------------------#
 
-
+res <- microbenchmark::microbenchmark(SSE_FlowDurationCurve_V1.0(
+  theta = iniTheta,
+  obs.data = RainDatFormat,
+  paramGR4J = paramGR4J,
+  virObsFlow = virObsFlow
+))
+res
 ########################################################
 paramMC <- data.frame(matrix(NA,12,2))
 paramMC[,1] <- iniTheta[1:12]; paramMC[,2] <- iniTheta[13:24]
@@ -327,7 +333,7 @@ model_V1.0 <-
 #------------------#
 model_V2.0 <-
   quote(
-    amountModel_V2.0(
+    WGEN_V2.0(
       occurParam = paramMC,
       amountParam = paramAmount,
       indRainDate = indRainDate,
@@ -337,7 +343,7 @@ model_V2.0 <-
 #------------------#
 model_V3.0 <-
   quote(
-    amountModel_V3.0(
+    WGEN_V3.0(
       occurParam = paramMC,
       amountParam = paramAmount,
       indRainDate = indRainDate,
@@ -347,10 +353,10 @@ model_V3.0 <-
 #------------------#
 model_V4.0 <-
   quote(
-    amountModel_V4.0(
+    WGEN_V4.0(
       occurParam = paramMC,
       amountParam = paramAmount,
-      indRainDate = indRainDate$i.mm,
+      indRainDate = indRainDate,
       rep = 1
     )
   )
@@ -363,11 +369,11 @@ model_V1.1 <-
     rep = 1
   ))
 #
-OFList <- list(model_V1.0, model_V1.1, model_V2.0, model_V3.0, model_V4.0)
+OFList <- list(model_V1.1, model_V2.0, model_V3.0, model_V4.0)
 #------------------#
 res <- microbenchmark::microbenchmark(list = OFList)
 #------------------#
-nameList <- c("V1.0", "V1.1", "V2.0", "V3.0", "V4.0")
+nameList <- c("V1.0", "V2.0", "V3.0", "V4.0")
 #------------------#
 boxplot(res, names = nameList)
 #------------------#
@@ -376,13 +382,13 @@ res
 #
 exceed_V1.0 <- quote(getExceedProb(virObsFlow))
 exceed_V2.0 <- quote(getExceedProb_V2.0(virObsFlow))
-exceed_V3.0 <- quote(getExceedProb_V3.0(virObsFlow))
+
 #------------------#
-OFList <- list(exceed_V1.0, exceed_V2.0, exceed_V3.0)
+OFList <- list(exceed_V1.0, exceed_V2.0)
 #------------------#
 res <- microbenchmark::microbenchmark(list = OFList)
 #------------------#
-nameList <- c("V1.0", "V2.0", "V3.0")
+nameList <- c("V1.0", "V2.0")
 #------------------#
 boxplot(res, names = nameList)
 #------------------#
@@ -419,7 +425,7 @@ res
 
 
 
-simrep<-amountModel_V4.0(
+simrep<-WGEN_V4.0(
   occurParam = paramMC,
   amountParam = paramAmount,
   indRainDate = indRainDate,

@@ -874,12 +874,15 @@ SSE_FlowDurationCurve_V4.0 <- function(theta,
 
 ##---------------------------------------##
 ##
-SSE_FlowDurationCurve_V5.0 <- function(theta,
-                                       indRainDate,
-                                       paramGR4J,
-                                       inputGR4J,
-                                       runOptionGR4J,
-                                       virObsFDC) {
+SSE_FlowDurationCurve_V4.0 <-
+  function(theta,
+           indRainDate,
+           paramGR4J,
+           inputGR4J,
+           runOptionGR4J,
+           virObsFDC) {
+    
+  
   
   #Passing element in theta to WGEN parameter
   #Occurence model parameters

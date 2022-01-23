@@ -1,13 +1,59 @@
 #Optimise run time of SSE_FlowDurationCurve
 #
 #function component
-SSE_OF <- function(theta,
-                   indRainDate,
+SSE_OF1 <- function(theta,
+                   RainDatFormat,
                    paramGR4J,
                    virObsFlow){
   #Passing element in theta to WGEN parameter
   #Occurence model parameters
-  startOF <- Sys.time()
+  
+  paramMC <- data.frame(matrix(NA,12,2))
+  paramMC[,1] <- theta[1:12]; paramMC[,2] <- theta[13:24]
+  #Amount model parameters
+  paramAmount <- data.frame(matrix(NA,12,2))
+  paramAmount[,1] <- theta[25:36]; paramAmount[,2] <- theta[37:48]
+  
+  # #Generate sim rain with given parameters above (a vector)
+  # 
+  simRainRep <- manualWGEN(
+    paramMC = paramMC,
+    paramAmount = paramAmount,
+    obs.data = RainDatFormat,
+    rep = 1
+  ) #Get Rainfall replicates
+  # 
+  #   #Generate sim flow with sim rain
+  # #add simRain to paramGR4J options
+  #paramGR4J[[3]]$Precip <- simRainRep[,1]
+  #RunGR4J model with updated sim rain
+  outputGR4J <- f1(simRainRep, paramGR4J)
+  # 
+  # #Get sim flow from output GR4J
+  # simFlowRep <- outputGR4J$Qsim
+  # 
+  # #Calculate Exceedance Probability for sim flow and virobs flow
+  # 
+  # simFDC <- getExceedProb(simFlowRep)
+  # 
+  # virObsFDC <- getExceedProb(virObsFlow)
+  # 
+  # #Calculate the Sum of square Error
+  # err <- simFDC$Flow - virObsFDC$Flow
+  # SSE <- sum(err^2)
+  # #SSE <- SSE*100
+  # return(SSE)
+}
+
+
+#function component
+SSE_OF2 <- function(theta,
+                    indRainDate,
+                    paramGR4J,
+                    virObsFlow){
+  #Passing element in theta to WGEN parameter
+  #Occurence model parameters
+  
   paramMC <- data.frame(matrix(NA,12,2))
   paramMC[,1] <- theta[1:12]; paramMC[,2] <- theta[13:24]
   #Amount model parameters
@@ -15,47 +61,48 @@ SSE_OF <- function(theta,
   paramAmount[,1] <- theta[25:36]; paramAmount[,2] <- theta[37:48]
   
   #Generate sim rain with given parameters above (a vector)
-  startSimRain <- Sys.time()
-  simRainRep <- amountModel(occurParam = paramMC,amountParam = paramAmount, indRainDate = indRainDate, rep = 1) #Get Rainfall replicates
-  endSimRain <- Sys.time()
-  runTimeSimRain <- endSimRain - startSimRain
-  print(runTimeSimRain)
-  
-  #Generate sim flow with sim rain
-  #add simRain to paramGR4J options
-  paramGR4J[[3]]$Precip <- simRainRep[,1]
+
+  simRainRep <-
+    amountModel_V4.0(
+      occurParam = paramMC,
+      amountParam = paramAmount,
+      indRainDate = indRainDate,
+      rep = 1
+    )
+  # #Generate sim flow with sim rain
+  # #add simRain to paramGR4J options
+  #paramGR4J[[3]]$Precip <- simRainRep[,1]
   #RunGR4J model with updated sim rain
-  startSimFlow <- Sys.time()
-  outputGR4J <- runGR4J(paramGR4J)
-  endSimFlow <- Sys.time()
-  runtimeSimFlow <- endSimFlow - startSimFlow
-  print(runtimeSimFlow)
-  
-  #Get sim flow from output GR4J
-  simFlowRep <- outputGR4J$Qsim
-  
-  #Calculate Exceedance Probability for sim flow and virobs flow
-  startSimFDC <- Sys.time()
-  simFDC <- getExceedProb(simFlowRep)
-  endSimFDC <- Sys.time()
-  runTimeSimFDC <- endSimFDC - startSimFDC
-  print(runTimeSimFDC)
-  
-  startVOFDC <- Sys.time()
-  virObsFDC <- getExceedProb(virObsFlow)
-  endVOFDC <- Sys.time()
-  runTimeVOFDC <- endVOFDC - startVOFDC
-  print(runTimeVOFDC)
-  #Calculate the Sum of square Error
-  err <- simFDC$Flow - virObsFDC$Flow
-  SSE <- sum(err^2)
-  #SSE <- SSE*100
-  
-  endOF <- Sys.time()
-  runTimeOF <- endOF - startOF
-  print(runTimeOF)
-  return(SSE)
+  outputGR4J <- f1(simRainRep, paramGR4J)
+  # 
+  # #Get sim flow from output GR4J
+  # simFlowRep <- outputGR4J$Qsim
+  # 
+  # #Calculate Exceedance Probability for sim flow and virobs flow
+  # 
+  # simFDC <- getExceedProb(simFlowRep)
+  # 
+  # virObsFDC <- getExceedProb(virObsFlow)
+  # 
+  # #Calculate the Sum of square Error
+  # err <- simFDC$Flow - virObsFDC$Flow
+  # SSE <- sum(err^2)
+  # #SSE <- SSE*100
+  # return(SSE)
 }
+
+res <- microbenchmark::microbenchmark(
+  OF_1 = SSE_OF1(iniTheta,
+                 RainDatFormat,
+                 paramGR4J,
+                 virObsFlow),
+  OF_2 = SSE_OF2(iniTheta,
+          indRainDate,
+          paramGR4J,
+          virObsFlow)
+)
+res
+
 
 
 iniThetaDataframe <-
@@ -65,41 +112,6 @@ iniTheta[1:12]<-iniThetaDataframe[1:12,1]; iniTheta[13:24]<-iniThetaDataframe[1:
 iniTheta[25:36]<-iniThetaDataframe[1:12,3]; iniTheta[37:48]<-iniThetaDataframe[1:12,4]
 
 
-sse <- SSE_OF(theta = iniTheta,
-                      indRainDate = indRainDate,
-                      paramGR4J = paramGR4J,
-                      virObsFlow = virObsFlow)
-
-
-
-
-indRainDate <- makeObsDates(RainDat[,1])
-
-amountModel <- function(occurParam,
-                        amountParam,
-                        rep,
-                        indRainDate){
-  
-  simRainRep <- data.frame(matrix(NA, nrow = indRainDate$nDy, ncol = rep))
-  
-  for (i in 1:12){
-    for (j in 1:rep){
-      bin <- MCmodel(length(indRainDate$i.mm[[i]]), occurParam[i,1], occurParam[i,2])
-      pred <- rep(0, length(bin))
-      randRain <- rgamma(length(bin), amountParam[i,1], amountParam[i,2])
-      simRainRep[indRainDate$i.mm[[i]],j] <- bin * randRain
-    }
-  }
-  return(simRainRep)
-}
-############################################################
-set.seed(68)
-simRainRep1 <- amountModel_V2.0(occurParam = paramMC,amountParam = paramAmount, indRainDate = indRainDate, rep = 1)
-
-simRainRep2 <- getSimFlowRep_Opt(theta = theta, paramGR4J = paramGR4J, rep = 100, obsRain = RainDatFormat)
-
-
-simRainRep3 <- amountModel_V3.0(occurParam = paramMC,amountParam = paramAmount, indRainDate = indRainDate, rep = 1)
 
 ############################################################
 
@@ -411,10 +423,19 @@ simrep<-amountModel_V4.0(
   occurParam = paramMC,
   amountParam = paramAmount,
   indRainDate = indRainDate,
-  rep = 100
+  rep = 1
 )
 simRep2 <- manualWGEN(paramMC = paramMC, paramAmount = paramAmount, obs.data = RainDatFormat, rep = 1)
 simRep1 <- simrep[,1]
 
+f1 <- function(simrep, paramGR4J){
+  paramGR4J[[3]]$Precip <- simrep[,1]
+  #RunGR4J model with updated sim rain
+  outputGR4J <- runGR4J(paramGR4J)
+  return(outputGR4J)
+}
+
+res <- microbenchmark::microbenchmark(F1 = f1(simrep,paramGR4J), F2 = f1(simRep2, paramGR4J))
+res
 
 

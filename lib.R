@@ -264,7 +264,7 @@ Amount_model <- function
   }
 }
 ##----------------------------------------##
-amountModel_V2.0 <- function(occurParam,
+WGEN_V2.0 <- function(occurParam,
                         amountParam,
                         rep,
                         indRainDate){
@@ -287,7 +287,7 @@ amountModel_V2.0 <- function(occurParam,
 }
 
 ##----------------------------------------##
-amountModel_V3.0 <- function(occurParam,
+WGEN_V3.0 <- function(occurParam,
                              amountParam,
                              rep,
                              indRainDate){
@@ -330,7 +330,7 @@ Rcpp::cppFunction('NumericVector MCmodel_C(int n,double PDW, double PWW, Numeric
   return day;
 }')
 ##----------------------------------------##
-amountModel_V4.0 <- function(occurParam,
+WGEN_V4.0 <- function(occurParam,
                              amountParam,
                              rep,
                              indRainDate){
@@ -402,7 +402,7 @@ getSimRain <- function(obs.data, rep = 10, mod = "gama", option = "MLE", thresho
     amount.param <- fitAmountModel(obs.data,mod)
     
     #Simulating
-    simRainRep <- amountModel_V4.0(occur.param, amount.param, rep, indRainDate)
+    simRainRep <- WGEN_V4.0(occur.param, amount.param, rep, indRainDate)
     
     return(list(ls.month.sim, occur.param, amount.param))
   } else if (option == "MoM"){
@@ -415,7 +415,7 @@ getSimRain <- function(obs.data, rep = 10, mod = "gama", option = "MLE", thresho
     amount.param <- fitAmountModel_MoM(obs.data)
     
     #Simulating
-    simRainRep <- amountModel_V3.0(occur.param, amount.param, rep, indRainDate)
+    simRainRep <- WGEN_V3.0(occur.param, amount.param, rep, indRainDate)
     
     return(list(simRainRep, occur.param, amount.param))
   }
@@ -751,7 +751,7 @@ paramAmount <- data.frame(matrix(NA,12,2))
 paramAmount[,1] <- theta[25:36]; paramAmount[,2] <- theta[37:48]
 
 #Generate sim rain with given parameters above (a vector)
-  simRainRep <- amountModel_V2.0(occurParam = paramMC,amountParam = paramAmount, indRainDate = indRainDate, rep = 1) #Get Rainfall replicates
+  simRainRep <- WGEN_V2.0(occurParam = paramMC,amountParam = paramAmount, indRainDate = indRainDate, rep = 1) #Get Rainfall replicates
 #Generate sim flow with sim rain
   #add simRain to paramGR4J options
   paramGR4J[[3]]$Precip <- simRainRep[,1]
@@ -819,7 +819,7 @@ virObsFDC){
   paramAmount[,1] <- theta[25:36]; paramAmount[,2] <- theta[37:48]
   
   #Generate sim rain with given parameters above (a vector)
-  simRainRep <- amountModel_V3.0(occurParam = paramMC,amountParam = paramAmount, indRainDate = indRainDate, rep = 1) #Get Rainfall replicates
+  simRainRep <- WGEN_V3.0(occurParam = paramMC,amountParam = paramAmount, indRainDate = indRainDate, rep = 1) #Get Rainfall replicates
   #Generate sim flow with sim rain
   #add simRain to paramGR4J options
   inputGR4J[[2]] <- simRainRep[,1]
@@ -853,7 +853,7 @@ SSE_FlowDurationCurve_V4.0 <- function(theta,
   paramAmount[,1] <- theta[25:36]; paramAmount[,2] <- theta[37:48]
   
   #Generate sim rain with given parameters above (a vector)
-  simRainRep <- amountModel_V3.0(occurParam = paramMC,amountParam = paramAmount, indRainDate = indRainDate, rep = 1) #Get Rainfall replicates
+  simRainRep <- WGEN_V3.0(occurParam = paramMC,amountParam = paramAmount, indRainDate = indRainDate, rep = 1) #Get Rainfall replicates
   #Generate sim flow with sim rain
   #add simRain to paramGR4J options
   inputGR4J[[2]] <- simRainRep[,1]
@@ -890,7 +890,7 @@ SSE_FlowDurationCurve_V5.0 <- function(theta,
   paramAmount[,1] <- theta[25:36]; paramAmount[,2] <- theta[37:48]
   
   #Generate sim rain with given parameters above (a vector)
-  simRainRep <- amountModel_V4.0(occurParam = paramMC,amountParam = paramAmount, indRainDate = indRainDate, rep = 1) #Get Rainfall replicates
+  simRainRep <- WGEN_V4.0(occurParam = paramMC,amountParam = paramAmount, indRainDate = indRainDate, rep = 1) #Get Rainfall replicates
   #Generate sim flow with sim rain
   #add simRain to paramGR4J options
   inputGR4J[[2]] <- simRainRep[,1]
@@ -920,7 +920,7 @@ getSimFlowRep_Opt <- function(theta,
   paramAmount[,1] <- theta[25:36]; paramAmount[,2] <- theta[37:48]
   
   indRainDate <- makeObsDates(obsRain[,1])
-  simRainRep_Opt <- amountModel_V2.0(paramMC, paramAmount, rep = rep, indRainDate = indRainDate)
+  simRainRep_Opt <- WGEN_V2.0(paramMC, paramAmount, rep = rep, indRainDate = indRainDate)
   simRainList_Opt <- makeRainList(simRainRep_Opt, indRainDate)
   
   simFlowRep_Opt <-

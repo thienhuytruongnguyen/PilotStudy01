@@ -298,9 +298,10 @@ WGEN_V3.0 <- function(occurParam,
     #Loop for each replicate
     for (j in 1:rep){
       #Create the occurence binary series
+      set.seed(68)
       bin <- MCmodel(length(indRainDate$i.mm[[i]]), occurParam[i,1], occurParam[i,2])
       #make rain ts from gamma distribution
-      #set.seed(68)
+      set.seed(68)
       randRain <- rgamma(length(bin[bin==1]), amountParam[i,1], amountParam[i,2])
       
       bin[bin==1] <- randRain
@@ -341,10 +342,10 @@ WGEN_V4.0 <- function(occurParam,
     #Loop for each replicate
     for (j in 1:rep){
       #Create the occurence binary series
+      #set.seed(68)
       U_t <- runif(length(indRainDate$i.mm[[i]]),0,1)
       bin <- MCmodel_C(length(U_t), occurParam[i,1], occurParam[i,2], U_t)
       #make rain ts from gamma distribution
-      #set.seed(68)
       randRain <- rgamma(length(bin[bin==1]), amountParam[i,1], amountParam[i,2])
       
       bin[bin==1] <- randRain
@@ -415,7 +416,7 @@ getSimRain <- function(obs.data, rep = 10, mod = "gama", option = "MLE", thresho
     amount.param <- fitAmountModel_MoM(obs.data)
     
     #Simulating
-    simRainRep <- WGEN_V3.0(occur.param, amount.param, rep, indRainDate)
+    simRainRep <- WGEN_V4.0(occur.param, amount.param, rep, indRainDate)
     
     return(list(simRainRep, occur.param, amount.param))
   }
@@ -840,7 +841,7 @@ virObsFDC){
 ##---------------------------------------##
 ##---------------------------------------##
 ##
-SSE_FlowDurationCurve_V4.0 <- function(theta,
+SSE_FlowDurationCurve_V3.1 <- function(theta,
                                        indRainDate,
                                        paramGR4J, inputGR4J, runOptionGR4J,
                                        virObsFDC){
@@ -923,7 +924,7 @@ getSimFlowRep_Opt <- function(theta,
   paramAmount[,1] <- theta[25:36]; paramAmount[,2] <- theta[37:48]
   
   indRainDate <- makeObsDates(obsRain[,1])
-  simRainRep_Opt <- WGEN_V2.0(paramMC, paramAmount, rep = rep, indRainDate = indRainDate)
+  simRainRep_Opt <- WGEN_V4.0(paramMC, paramAmount, rep = rep, indRainDate = indRainDate)
   simRainList_Opt <- makeRainList(simRainRep_Opt, indRainDate)
   
   simFlowRep_Opt <-

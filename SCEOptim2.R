@@ -18,15 +18,17 @@ lowerTheta[1:24] = 0; lowerTheta[25:48] = 1e-10
 upperTheta <- rep(0,48)
 upperTheta[1:24] = 1; upperTheta[25:48] = Inf
 
-
-for (i in 16:20){
+virObsFDC <- getExceedProb_V2.0(virObsFlow)
+for (i in 1:20){
   
   #Run SCE optim
-  optResult <- hydromad::SCEoptim(FUN = SSE_FlowDurationCurve,
+  optResult <- hydromad::SCEoptim(FUN = SSE_FlowDurationCurve_V4.0,
                                   par = iniTheta,
                                   indRainDate = indRainDate,
-                                  paramGR4J = paramGR4J,
-                                  virObsFlow = virObsFlow,
+                                  paramGR4J = paramGR4J[[1]],
+                                  inputGR4J = paramGR4J[[3]],
+                                  runOptionGR4J = paramGR4J[[4]],
+                                  virObsFDC = virObsFDC$flow,
                                   lower = lowerTheta,
                                   upper = upperTheta)
   
@@ -167,4 +169,8 @@ for (m in 1:12){
 
 dev.off()
 
- 
+
+
+write.csv(thetaTrial_20, file = "theta.csv")
+
+SSE_FlowDurationCurve_V3.0(thetaTrial_20, indRainDate, paramGR4J[[1]], paramGR4J[[3]], paramGR4J[[4]], virObsFDC$flow)

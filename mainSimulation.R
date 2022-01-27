@@ -173,3 +173,7 @@ for (i in 1:25) {
 dev.off()
 runEnd <- Sys.time()
 runEnd - runStart
+
+sum((virObsFlow-simFlowRep[,1])^2)
+simFDC <- getExceedProb_V2.0(simFlowRep[,1])
+sum((virObsFDC-simFDC)^2)

@@ -1,0 +1,19 @@
+1. WGEN
+V1.0: rgamma(no.wetdays), redundant loop, not use date index
+V2.0: rgamma(all days), remove redundant loop, use date index
+V3.0: rgamma(no.wetdays), remove redundant loop, use date index
+V4.0: rgamma(no.wetdays), remove redundant loop, use date index, MC model run in C, storing output in matrix instead of dataframe
+
+2. get exceedance probability
+V1.0: use sort(), redundant variable call
+V2.0: use order(), remove redundant variable
+
+3. MC model
+using Rcpp package to create model function that run in C
+
+4. Overall
+V1.0: WGEN V1.0, redundant wrappers, getExceedProb V1.0
+V2.0: WGEN V2.0, getExceedProb V1.0, wrapper for GR4J
+V3.0: WGEN V3.0, getExceedProb V1.0, call GR4J directly, remove voFDC
+V3.1: WGEN V3.0, getExceedProb V2.0, call GR4J directly, remove voFDC
+V4.0: WGEN V4.0, getExceedProb V2.0, call GR4J directly, remove voFDC, use matrix instead of dataframe. 

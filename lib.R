@@ -342,7 +342,7 @@ WGEN_V4.0 <- function(occurParam,
     #Loop for each replicate
     for (j in 1:rep){
       #Create the occurence binary series
-      #set.seed(68)
+      set.seed(68)
       U_t <- runif(length(indRainDate$i.mm[[i]]),0,1)
       bin <- MCmodel_C(length(U_t), occurParam[i,1], occurParam[i,2], U_t)
       #make rain ts from gamma distribution
@@ -895,6 +895,41 @@ SSE_FlowDurationCurve_V4.0 <-
   
   #Generate sim rain with given parameters above (a vector)
   simRainRep <- WGEN_V4.0(occurParam = paramMC,amountParam = paramAmount, indRainDate = indRainDate, rep = 1) #Get Rainfall replicates
+  #Generate sim flow with sim rain
+  #add simRain to paramGR4J options
+  inputGR4J[[2]] <- simRainRep[,1]
+  #RunGR4J model with updated sim rain
+  outputGR4J <- airGR::RunModel_GR4J(InputsModel = inputGR4J, RunOptions = runOptionGR4J, Param = paramGR4J)
+  #Get sim flow from output GR4J
+  simFlowRep <- outputGR4J$Qsim
+  
+  #Calculate Exceedance Probability for sim flow and virobs flow
+  simFDC <- getExceedProb_V2.0(simFlowRep)
+  
+  #Calculate the Sum of square Error
+  err <- simFDC$flow - virObsFDC
+  SSE <- sum(err^2)
+  #SSE <- SSE*100
+  return(SSE)
+}
+##---------------------------------------##
+SSE_FlowDurationCurve_InfMonth <-
+function(theta,
+         indRainDate,
+         paramGR4J,
+         inputGR4J,
+         runOptionGR4J,
+         virObsFDC,
+         paramWGEN) {
+  
+  
+  
+  #Passing element in theta to WGEN parameter
+  #Occurence model parameters
+  paramWGEN[c(6,7,8),c(1,2,3,4)] <- theta[1:12]
+  
+  #Generate sim rain with given parameters above (a vector)
+  simRainRep <- WGEN_V4.0(occurParam = paramWGEN[,c(1,2)],amountParam = paramWGEN[,c(3,4)], indRainDate = indRainDate, rep = 1) #Get Rainfall replicates
   #Generate sim flow with sim rain
   #add simRain to paramGR4J options
   inputGR4J[[2]] <- simRainRep[,1]

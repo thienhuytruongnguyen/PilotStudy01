@@ -127,7 +127,7 @@ for (i in 1:25) {
   #Markov Chain Model parameter
   paramWGEN[1:2] <- simRainRep[[2]][1:2]
   
-  #Gama distribution barameter
+  #Gama distribution parameter
   paramWGEN[3:4] <- simRainRep[[3]]
   
   #Write to .csv file
@@ -174,6 +174,27 @@ dev.off()
 runEnd <- Sys.time()
 runEnd - runStart
 
-sum((virObsFlow-simFlowRep[,1])^2)
-simFDC <- getExceedProb_V2.0(simFlowRep[,1])
-sum((virObsFDC-simFDC)^2)
+obsExceed <- getExceedProb_V2.0(RainDat[paramGR4J[[2]],2])
+plot(virObsFDC$flow[14702:19597],obsExceed$flow[14702:19597])
+boxplot.ext(virObsFDC$flow)
+plot(virObsFDC$Prob,obsExceed$Prob)
+par(mfrow=c(3,4))
+for (i in 1:12){
+  obsExceed <- getExceedProb_V2.0(RainDat[indRainDate$i.mm[[i]],2])
+  virObsFDC_Jan <- getExceedProb_V2.0(virObsFlow[indRainDate$i.mm[[i]]])
+  plot(obsExceed$flow, virObsFDC_Jan$flow)
+}
+indRainDate <- makeObsDates(RainDat[paramGR4J[[2]],1])
+par(mfrow=c(3,4))
+month <- c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+for (i in 1:12){
+  plot(virObsFlow[indRainDate$i.mm[[i]]],RainDat[indRainDate$i.mm[[i]],2],xlab =" ", ylab =" ")
+  title(ylab = "Rainfall (mm)", xlab = "Runoff (mm)")
+  mtext(paste(month[i]))
+}
+compareAnnualMaxima(indObsDate = indRainDate, obs = virObsFlow, simRep = simFlowRep)
+plotFlowDurationCurve(simFlowRep = simFlowRep, virObsFlow = virObsFlow, option = "withCILimit")
+plot(obsExceed,log="y")
+plot(virObsFDC, log="y",xlab="", ylab="")
+title(ylab = "Flow (mm/day)", xlab="Exceedance Probability")
+mtext("Virtual Observed Flow Duration Curve")

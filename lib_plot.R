@@ -396,7 +396,7 @@ plotFlowDurationCurve <- function (simFlowRep,
         
       }
       #Start plot
-      plot(virObsExceedProb$Exceedance_Probability[!is.na(virObsExceedProb$Flow)],virObsExceedProb$Flow[!is.na(virObsExceedProb$Flow)], log="y", ylim = ylim , type="l", lwd = 2, ann = FALSE)
+      plot(virObsExceedProb$Exceedance_Probability[!is.na(virObsExceedProb$Flow)],virObsExceedProb$Flow[!is.na(virObsExceedProb$Flow)], log="y", ylim = ylim , type="p", lwd = 0.5, ann = FALSE)
       title(ylab = ylab, xlab = xlab, line = 2.5)
       legend("topright", legend = c("VirObs Flow","Sim. 90% PL", "Sim. Median", "in Log Scale"),
              col = c("black","red","darkblue"), lty = c(1,2,3,0), lwd = 2, cex = 0.8)
@@ -452,7 +452,7 @@ plotFlowDurationCurve <- function (simFlowRep,
       ylim <- c(ylower,yupper)
       
       #Start plot
-      plot(virObsExceedProb, log="y",type="l",ylim = ylim, lwd = 2, ann = FALSE)
+      plot(virObsExceedProb, log="y",type="p",ylim = ylim, lwd = .5, ann = FALSE)
       title(ylab = ylab, xlab = xlab, line = 2.5)
       legend("topright", legend = c("VirObs Flow","Sim. 90% PL", "Sim. Median", "in Log Scale"),
              col = c("black","red","darkblue"), lty = c(1,2,3,0), lwd = 1, cex = 0.8)

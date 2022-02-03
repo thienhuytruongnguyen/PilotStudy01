@@ -342,7 +342,7 @@ WGEN_V4.0 <- function(occurParam,
     #Loop for each replicate
     for (j in 1:rep){
       #Create the occurence binary series
-      set.seed(68)
+      #set.seed(68)
       U_t <- runif(length(indRainDate$i.mm[[i]]),0,1)
       bin <- MCmodel_C(length(U_t), occurParam[i,1], occurParam[i,2], U_t)
       #make rain ts from gamma distribution

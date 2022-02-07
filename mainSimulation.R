@@ -107,7 +107,7 @@ for (i in 1:25) {
   indRainDate <- makeObsDates(RainDat[,1]) #get index rain day
   RainDatFormat <- format_TimeSeries(RainDat)
   
-  rep = 100 #set number of replicates
+  rep = 1000 #set number of replicates
  
   simRainRep <-
     getSimRain(RainDatFormat,

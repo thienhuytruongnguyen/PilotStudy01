@@ -469,7 +469,7 @@ makeInputGR4J <- function(
   ){
   #Converting flow unit from ML/day to mm by dividing by catchment area
   Q <- Q/A
-  DATA <- data.frame(matrix(NA,nrow = length(RainDat[,1]), ncol = 4))
+  DATA <- data.frame(matrix(NA,nrow = length(P), ncol = 4))
   colnames(DATA) <- c("DatesR","P","Q","E")
   DATA$DatesR <- Date; DATA$P <- P; DATA$Q <- Q; DATA$E <- E
   
@@ -525,6 +525,54 @@ getParamGR4J <- function(inputGR4J,#observed input data
     
   }
 
+  return(list(Param,Ind_Run,InputsModel,RunOptions))
+}
+##---------------------------------------##
+##calibrate GR4J model
+getParamGR4J_SepMonth <- function(inputGR4J,#observed input data
+                         start="1970-01-01",#Start of period
+                         end="2019-02-28",#End of period
+                         warmup,
+                         parameter="unknown", knownParam #or "known"
+){
+  require (airGR)
+  require (lubridate)
+  
+  #get start and end of run and warmup period
+  #start <- as.Date(start,tryFormats = "%d/%m/%Y"); end <- as.Date(end,tryFormats = "%d/%m/%Y")
+  #from <- start %m+% months(warmup) ; to <- end
+  #startWarmUp <- start ; endWarmUp <- from %m-% days(1)
+  #set Input model
+  InputsModel <- airGR::CreateInputsModel(FUN_MOD = airGR::RunModel_GR4J, DatesR = inputGR4J$DatesR,
+                                          Precip = inputGR4J$P, PotEvap = inputGR4J$E)
+  #RunOptions object
+  ##1.Index Run and WarmUp period
+  Ind_Run <- seq(32,length(inputGR4J$P))
+  Ind_WarmUp <- seq(1,31)
+                    #which(inputGR4J$DatesR == endWarmUp))
+  ##2.Run Option
+  RunOptions <- airGR::CreateRunOptions(FUN_MOD = airGR::RunModel_GR4J,
+                                        InputsModel = InputsModel, IndPeriod_Run = Ind_Run,
+                                        IniStates = NULL, IniResLevels = NULL, IndPeriod_WarmUp = Ind_WarmUp)
+  if (parameter == "unknown"){
+    #InputsCrit object
+    InputsCrit <- airGR::CreateInputsCrit(FUN_CRIT = airGR::ErrorCrit_NSE, InputsModel = InputsModel, RunOptions = RunOptions, VarObs = "Q", Obs = inputGR4J$Q[Ind_Run])
+    
+    #CalibOptions object
+    CalibOptions <- airGR::CreateCalibOptions(FUN_MOD = airGR::RunModel_GR4J, FUN_CALIB = airGR::Calibration_Michel)
+    
+    #CALIBRATION
+    OutputsCalib <- airGR::Calibration_Michel(InputsModel = InputsModel, RunOptions = RunOptions,
+                                              InputsCrit = InputsCrit, CalibOptions = CalibOptions,
+                                              FUN_MOD = airGR::RunModel_GR4J)
+    #Get GR4J parameter
+    Param <- OutputsCalib$ParamFinalR
+  } else if (parameter == "known"){
+    
+    Param <- vector(length = 4); Param[1] <- knownParam[,1]; Param[2] <- knownParam[,2]; Param[3] <- knownParam[,3]; Param[4] <- knownParam[,4]
+    
+  }
+  
   return(list(Param,Ind_Run,InputsModel,RunOptions))
 }
 ##---------------------------------------##

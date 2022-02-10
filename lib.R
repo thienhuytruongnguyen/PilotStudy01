@@ -355,7 +355,24 @@ WGEN_V4.0 <- function(occurParam,
   }
   return(simRainRep)
 }
-
+##----------------------------------------##
+WGEN_SingleMonth <- function(occurParam, amountParam, obsRain, rep){
+  #declare simrain 
+  simRainRep <- matrix(NA,length(obsRain), rep)
+  #Create the occurence binary series
+  #set.seed(68)
+  for (i in 1:rep){
+    U_t <- runif(length(obsRain),0,1)
+    bin <- MCmodel_C(length(U_t), occurParam[1], occurParam[2], U_t)
+    #make rain ts from gamma distribution
+    randRain <- rgamma(length(bin[bin==1]), amountParam[1], amountParam[2])
+    #attach rainfall amount to rain day  
+    bin[bin==1] <- randRain
+    #matching
+    simRainRep[,i] <- bin
+  }
+  return(simRainRep)
+}
 ##----------------------------------------##
 ##Log-likelihood functions for gamma and exponential distribition
 #Gamma distribution
@@ -532,7 +549,6 @@ getParamGR4J <- function(inputGR4J,#observed input data
 getParamGR4J_SepMonth <- function(inputGR4J,#observed input data
                          start="1970-01-01",#Start of period
                          end="2019-02-28",#End of period
-                         warmup,
                          parameter="unknown", knownParam #or "known"
 ){
   require (airGR)
@@ -996,6 +1012,209 @@ function(theta,
   return(SSE)
 }
 ##---------------------------------------##
+SSE_FDC_SingleMonth <-
+  ##Calculate the SSE between simFlow and VirObs Flow of 1 single month
+  function(theta, #parameter to optimise
+           obsRain, #Observed Rainfall for 1 single month
+           paramGR4J, #Parameter of the GR4J
+           inputGR4J, #Input of the GR4J: Evapo-transpiration
+           runOptionGR4J, #
+           virObsFDC){ #Virtual observed flow duration curve of 1 single month
+    
+    #Passing element in theta to WGEN parameter
+    occurParam <- vector(length = 2)
+    occurParam[1] <- theta[1]; occurParam[2] <- theta[2]
+    
+    amountParam <- vector(length = 2)
+    amountParam[1] <- theta[3]; amountParam[2] <- theta[4]
+    
+    #declare simrain 
+    simRainRep <- vector(length = length(obsRain))
+    #Create the occurence binary series
+    set.seed(68)
+    U_t <- runif(length(obsRain),0,1)
+    bin <- MCmodel_C(length(U_t), occurParam[1], occurParam[2], U_t)
+    #make rain ts from gamma distribution
+    randRain <- rgamma(length(bin[bin==1]), amountParam[1], amountParam[2])
+    #attach rainfall amount to rain day  
+    bin[bin==1] <- randRain
+    #matching
+    simRainRep <- bin
+    
+    #Generate sim flow with sim rain
+    #add simRain to paramGR4J options
+    inputGR4J[[2]] <- simRainRep
+    #RunGR4J model with updated sim rain
+    outputGR4J <- airGR::RunModel_GR4J(InputsModel = inputGR4J, RunOptions = runOptionGR4J, Param = paramGR4J)
+    #Get sim flow from output GR4J
+    simFlowRep <- outputGR4J$Qsim
+    
+    #Calculate Exceedance Probability for sim flow and virobs flow
+    simFDC <- getExceedProb_V2.0(simFlowRep)
+    
+    #Calculate the Sum of square Error
+    err <- simFDC$flow - virObsFDC
+    SSE <- sum(err^2)
+    #SSE <- SSE*100
+    return(SSE)
+  }
+##---------------------------------------##
+SSE_FDCMeanWetDay_SingleMonth <-
+  ##Calculate the SSE between simFlow and VirObs Flow of 1 single month
+  function(theta, #parameter to optimise
+           obsRain, #Observed Rainfall for 1 single month
+           paramGR4J, #Parameter of the GR4J
+           inputGR4J, #Input of the GR4J: Evapo-transpiration
+           runOptionGR4J, #
+           virObsFDC){ #Virtual observed flow duration curve of 1 single month
+    
+    #Passing element in theta to WGEN parameter
+    occurParam <- vector(length = 2)
+    occurParam[1] <- theta[1]; occurParam[2] <- theta[2]
+    
+    amountParam <- vector(length = 2)
+    amountParam[1] <- theta[3]; amountParam[2] <- theta[4]
+    
+    #declare simrain 
+    simRainRep <- vector(length = length(obsRain))
+    #Create the occurence binary series
+    set.seed(68)
+    U_t <- runif(length(obsRain),0,1)
+    bin <- MCmodel_C(length(U_t), occurParam[1], occurParam[2], U_t)
+    #make rain ts from gamma distribution
+    randRain <- rgamma(length(bin[bin==1]), amountParam[1], amountParam[2])
+    #attach rainfall amount to rain day  
+    bin[bin==1] <- randRain
+    #matching
+    simRainRep <- bin
+    
+    #Generate sim flow with sim rain
+    #add simRain to paramGR4J options
+    inputGR4J[[2]] <- simRainRep
+    #RunGR4J model with updated sim rain
+    outputGR4J <- airGR::RunModel_GR4J(InputsModel = inputGR4J, RunOptions = runOptionGR4J, Param = paramGR4J)
+    #Get sim flow from output GR4J
+    simFlowRep <- outputGR4J$Qsim
+    
+    #Calculate Exceedance Probability for sim flow and virobs flow
+    simFDC <- getExceedProb_V2.0(simFlowRep)
+    
+    #Calculate the Sum of square Error
+    err <- simFDC$flow - virObsFDC
+    
+    #Calculate the mean wet day error
+    errMeanWetDay <- mean(simRainRep) - mean(obsRain)
+    
+    SSE <- 0.5*sum(err^2) + 0.5*(errMeanWetDay^2)
+   
+    return(SSE)
+  }
+##---------------------------------------##
+##---------------------------------------##
+SSE_ExcProb_SingleMonth <-
+  ##Calculate the SSE between simFlow and VirObs Flow of 1 single month
+  function(theta, #parameter to optimise
+           obsRain, #Observed Rainfall for 1 single month
+           paramGR4J, #Parameter of the GR4J
+           inputGR4J, #Input of the GR4J: Evapo-transpiration
+           runOptionGR4J, #
+           virObsFDC){ #Virtual observed flow duration curve of 1 single month
+    
+    #Passing element in theta to WGEN parameter
+    occurParam <- vector(length = 2)
+    occurParam[1] <- theta[1]; occurParam[2] <- theta[2]
+    
+    amountParam <- vector(length = 2)
+    amountParam[1] <- theta[3]; amountParam[2] <- theta[4]
+    
+    #declare simrain 
+    simRainRep <- vector(length = length(obsRain))
+    #Create the occurence binary series
+    set.seed(68)
+    U_t <- runif(length(obsRain),0,1)
+    bin <- MCmodel_C(length(U_t), occurParam[1], occurParam[2], U_t)
+    #make rain ts from gamma distribution
+    randRain <- rgamma(length(bin[bin==1]), amountParam[1], amountParam[2])
+    #attach rainfall amount to rain day  
+    bin[bin==1] <- randRain
+    #matching
+    simRainRep <- bin
+    
+    #Generate sim flow with sim rain
+    #add simRain to paramGR4J options
+    inputGR4J[[2]] <- simRainRep
+    #RunGR4J model with updated sim rain
+    outputGR4J <- airGR::RunModel_GR4J(InputsModel = inputGR4J, RunOptions = runOptionGR4J, Param = paramGR4J)
+    #Get sim flow from output GR4J
+    simFlowRep <- outputGR4J$Qsim
+    
+    #Calculate Exceedance Probability for sim flow
+    simFDC <- getExceedProb_V2.0(simFlowRep)
+    
+    #Calculate the Sum of square Error
+    err <- simFDC$flow - virObsFDC
+    
+    #Calculate the exceedProb of rainfall
+    simRainExcProb <- getExceedProb_V2.0(simRainRep)
+    obsRainExcProb <- getExceedProb_V2.0(obsRain)
+    err2 <- simRainExcProb$flow - obsRainExcProb$flow
+    
+    SSE <- 0.5*(sum(err^2)) + 0.5*sum(err2^2)
+    
+    return(SSE)
+  }
+##---------------------------------------##
+SSE_WeightedFDC_SingleMonth <-
+  ##Calculate the SSE between simFlow and VirObs Flow of 1 single month
+  function(theta, #parameter to optimise
+           obsRain, #Observed Rainfall for 1 single month
+           paramGR4J, #Parameter of the GR4J
+           inputGR4J, #Input of the GR4J: Evapo-transpiration
+           runOptionGR4J, #
+           virObsFDC){ #Virtual observed flow duration curve of 1 single month
+    
+    #Passing element in theta to WGEN parameter
+    occurParam <- vector(length = 2)
+    occurParam[1] <- theta[1]; occurParam[2] <- theta[2]
+    
+    amountParam <- vector(length = 2)
+    amountParam[1] <- theta[3]; amountParam[2] <- theta[4]
+    
+    #declare simrain 
+    simRainRep <- vector(length = length(obsRain))
+    #Create the occurence binary series
+    set.seed(68)
+    U_t <- runif(length(obsRain),0,1)
+    bin <- MCmodel_C(length(U_t), occurParam[1], occurParam[2], U_t)
+    #make rain ts from gamma distribution
+    randRain <- rgamma(length(bin[bin==1]), amountParam[1], amountParam[2])
+    #attach rainfall amount to rain day  
+    bin[bin==1] <- randRain
+    #matching
+    simRainRep <- bin
+    
+    #Generate sim flow with sim rain
+    #add simRain to paramGR4J options
+    inputGR4J[[2]] <- simRainRep
+    #RunGR4J model with updated sim rain
+    outputGR4J <- airGR::RunModel_GR4J(InputsModel = inputGR4J, RunOptions = runOptionGR4J, Param = paramGR4J)
+    #Get sim flow from output GR4J
+    simFlowRep <- outputGR4J$Qsim
+    
+    #Calculate Exceedance Probability for sim flow
+    simFDC <- getExceedProb_V2.0(simFlowRep)
+    
+    #Calculate the Sum of square Error
+    err1 <- simFDC$flow[which(simFDC$Prob<0.05)] - virObsFDC$flow[which(virObsFDC$Prob<0.05)]
+    err2 <- simFDC$flow[which(simFDC$Prob>0.05&simFDC$Prob<=0.5)] - virObsFDC$flow[which(virObsFDC$Prob>0.05&virObsFDC$Prob<=0.5)]
+    err3 <- simFDC$flow[which(simFDC$Prob>0.5)] - virObsFDC$flow[which(virObsFDC$Prob>0.5)]
+    
+    
+    SSE <- 0.1*(sum(err1^2)) + 0.3*sum(err2^2) + 0.6*(sum(err3^2))
+    
+    return(SSE)
+  }
+##---------------------------------------##
 getSimFlowRep_Opt <- function(theta,
                               paramGR4J,
                               rep=100,
@@ -1398,4 +1617,37 @@ makeRainList <- function(simRainRep,
     simRainList[[i]] <- tempMatrix
   }
   return (simRainList)
+}
+#---------------------------------------------#
+getSimPercentile <- function(sim,
+                             indFlowDate
+){
+  simPercList <- list()
+  perc <- c(0.1, 0.25, 0.5, 0.75, 0.90, 0.95, 0.99)
+  rep = ncol(sim)
+  
+  for (i in 1:12){
+    simPercList[[i]] <- matrix(NA, length(perc), rep)
+    for (r in 1:rep){
+      for (p in 1:length(perc)){
+        simPercList[[i]][p,r] <- quantile(sim[indFlowDate$i.mm[[i]],r], probs = perc[p])
+      }
+    }
+  }
+  return(simPercList)
+}
+#---------------------------------------------#
+getObsPercentile <- function(obs,
+                             
+                             indFlowDate
+){
+  #Calculate 7 percentiles 10th, 25th, 50th, 75th, 90th, 95th, 99th
+  virObsMonthlyPerc <- matrix(NA,7,12) #VirObs Percentiles store matrix
+  perc <- c(0.1, 0.25, 0.5, 0.75, 0.90, 0.95, 0.99)
+  for (p in 1:7){
+    for (i in 1:12){
+      virObsMonthlyPerc[p,i] <- quantile(obs[indFlowDate$i.mm[[i]]],probs = perc[p])
+    }
+  }
+  return(virObsMonthlyPerc)
 }

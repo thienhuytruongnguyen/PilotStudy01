@@ -1,8 +1,9 @@
 #------------------Runoff Model----------------------------------
-par(mfrow = c(2,2))
+optimParamWGEN <- paramWGEN
+
 for (i in 1:12){
   ##Set GR4J model parameter
-  inputGR4J <-
+  inputGR4J_SepMonth <-
     makeInputGR4J(
       P = RainDat$Value[indRainDate$i.mm[[i]]],
       Q = FlowDat$Value[indRainDate$i.mm[[i]]],
@@ -13,87 +14,103 @@ for (i in 1:12){
   
   #Set start and end of period
   start <- FlowDat[indRainDate$i.mm[[i]],1][1] ; end <- FlowDat[indRainDate$i.mm[[i]],1][length(indRainDate$i.mm[[i]])]
-  
-  #months, set warm-up period, airGR prefer more than 12 months
-  warmup <- 24
+
   
   #make parameter list
-  paramGR4J <-
+  paramGR4J_SepMonth <-
     getParamGR4J_SepMonth(
-      inputGR4J = inputGR4J,
+      inputGR4J = inputGR4J_SepMonth,
       start = start,
       end = end,
-      warmup = warmup,
       parameter = "known",
       knownParam = catchmentInfo[1, c(9, 10, 11, 12)]
     )
   
   ##Run GR4J model
-  outputGR4J <- runGR4J(paramGR4J)
-  virObsFlow <- outputGR4J$Qsim
+  outputGR4J_SepMonth <- runGR4J(paramGR4J_SepMonth)
+  virObsFlowSM <- outputGR4J_SepMonth$Qsim
+  virObsFDCSM <- getExceedProb_V2.0(virObsFlowSM)
   
+  #Initiate parameter to optimise
+  iniTheta <- rep(0,4) 
+  iniTheta[1] <- paramWGEN[i,1]; iniTheta[2] <-paramWGEN[i,2];
+  iniTheta[3] <- paramWGEN[i,3]; iniTheta[4] <- paramWGEN[i,4]
+  lowerTheta <- rep(0,4)
+  lowerTheta[1:2] = 0; lowerTheta[3:4] = 1e-10
+  upperTheta <- rep(0,4)
+  upperTheta[1:2] = 1; upperTheta[3:4] = Inf
   
-  simFlowRep <-
-    getSimFlowRep(simRainRep = simRainRep[[1]][indRainDate$i.mm[[i]],], paramGR4J = paramGR4J)
+  #Run SCE optim
+  optResult <- hydromad::SCEoptim(FUN = SSE_WeightedFDC_SingleMonth,
+                                  par = iniTheta,
+                                  obsRain = RainDat[indRainDate$i.mm[[i]],2],
+                                  paramGR4J = paramGR4J_SepMonth[[1]],
+                                  inputGR4J = paramGR4J_SepMonth[[3]],
+                                  runOptionGR4J = paramGR4J_SepMonth[[4]],
+                                  virObsFDC = virObsFDCSM,
+                                  lower = lowerTheta,
+                                  upper = upperTheta)
   
-  #plot(inputGR4J$Q[32:length(indRainDate$i.mm[[1]])],virObsFlow)
-  plotFlowDurationCurve(simFlowRep = simFlowRep, virObsFlow = virObsFlow, option = "withCILimit")
-  
+  optimParamWGEN[i,] <- optResult$par
+  remove(paramGR4J_SepMonth, inputGR4J_SepMonth)
 }
 
+thetaTrialSepmonth <- rep(0,48)
+thetaTrialSepmonth[1:12]<-optimParamWGEN[1:12,1]; thetaTrialSepmonth[13:24]<-optimParamWGEN[1:12,2]
+thetaTrialSepmonth[25:36]<-optimParamWGEN[1:12,3]; thetaTrialSepmonth[37:48]<-optimParamWGEN[1:12,4]
 
-SSE_FDC_SepMonth<-
-  function(theta,
-           indRainDate,
-           paramGR4J,
-           inputGR4J,
-           runOptionGR4J,
-           virObsFDC) {
-    
-    #declare simrain dataframe
-    simRainRep <- matrix(NA, nrow = indRainDate$nDy, ncol = rep)
-    #Loop for each month
-    for (i in 1:12){
-      #Loop for each replicate
-      for (j in 1:rep){
-        #Create the occurence binary series
-        #set.seed(68)
-        U_t <- runif(length(indRainDate$i.mm[[i]]),0,1)
-        bin <- MCmodel_C(length(U_t), occurParam[i,1], occurParam[i,2], U_t)
-        #make rain ts from gamma distribution
-        randRain <- rgamma(length(bin[bin==1]), amountParam[i,1], amountParam[i,2])
-        
-        bin[bin==1] <- randRain
-        #matching
-        simRainRep[indRainDate$i.mm[[i]],j] <- bin
-      }
-    }
-    return(simRainRep)
-    
-    #Passing element in theta to WGEN parameter
-    #Occurence model parameters
-    paramMC <- matrix(NA,12,2)
-    paramMC[,1] <- theta[1:12]; paramMC[,2] <- theta[13:24]
-    #Amount model parameters
-    paramAmount <- matrix(NA,12,2)
-    paramAmount[,1] <- theta[25:36]; paramAmount[,2] <- theta[37:48]
-    
-    #Generate sim rain with given parameters above (a vector)
-    simRainRep <- WGEN_V4.0(occurParam = paramMC,amountParam = paramAmount, indRainDate = indRainDate, rep = 1) #Get Rainfall replicates
-    #Generate sim flow with sim rain
-    #add simRain to paramGR4J options
-    inputGR4J[[2]] <- simRainRep[,1]
-    #RunGR4J model with updated sim rain
-    outputGR4J <- airGR::RunModel_GR4J(InputsModel = inputGR4J, RunOptions = runOptionGR4J, Param = paramGR4J)
-    #Get sim flow from output GR4J
-    simFlowRep <- outputGR4J$Qsim
-    
-    #Calculate Exceedance Probability for sim flow and virobs flow
-    simFDC <- getExceedProb_V2.0(simFlowRep)
-    
-    #Calculate the Sum of square Error
-    err <- simFDC$flow - virObsFDC
-    SSE <- sum(err^2)
-    #SSE <- SSE*100
-    return(SSE)
-  }
+
+#Testing----
+iniTheta <- rep(0,4); iniTheta[1] <- paramWGEN[8,1]; iniTheta[2] <-paramWGEN[8,2];
+iniTheta[3] <- paramWGEN[8,3]; iniTheta[4] <- paramWGEN[8,4]
+virObsFDC <- getExceedProb_V2.0(virObsFlow)
+SSEsingleMonth <- SSE_FDC_SingleMonth(theta = theta,
+                                      obsRain = RainDat[indRainDate$i.mm[[8]],2],
+                                      paramGR4J = paramGR4J_SepMonth[[1]],
+                                      inputGR4J = paramGR4J_SepMonth[[3]],
+                                      runOptionGR4J = paramGR4J_SepMonth[[4]],
+                                      virObsFDC = virObsFDC$flow)
+#Run optim----
+
+lowerTheta <- rep(0,4)
+lowerTheta[1:2] = 0; lowerTheta[3:4] = 1e-10
+upperTheta <- rep(0,4)
+upperTheta[1:2] = 1; upperTheta[3:4] = Inf
+
+#Run SCE optim
+optResult <- hydromad::SCEoptim(FUN = SSE_FDC_SingleMonth,
+                                par = iniTheta,
+                                obsRain = RainDat[indRainDate$i.mm[[8]],2],
+                                paramGR4J = paramGR4J[[1]],
+                                inputGR4J = paramGR4J[[3]],
+                                runOptionGR4J = paramGR4J[[4]],
+                                virObsFDC = virObsFDC$flow,
+                                lower = lowerTheta,
+                                upper = upperTheta)
+
+#Testing----
+theta <- optResult$par
+#Passing element in theta to WGEN parameter
+occurParam <- vector(length = 2)
+occurParam[1] <- theta[1]; occurParam[2] <- theta[2]
+
+amountParam <- vector(length = 2)
+amountParam[1] <- theta[3]; amountParam[2] <- theta[4]
+
+
+
+
+
+simRainRep <-
+  WGEN_SingleMonth(
+    occurParam = occurParam,
+    amountParam = amountParam,
+    obsRain = RainDat[indRainDate$i.mm[[8]], 2],
+    rep = 100
+  )
+
+simFlowRep <-
+  getSimFlowRep(simRainRep = simRainRep, paramGR4J = paramGR4J)
+
+#plot(inputGR4J$Q[32:length(indRainDate$i.mm[[1]])],virObsFlow)
+plotFlowDurationCurve(simFlowRep = simFlowRep, virObsFlow = virObsFlow, option = "withCILimit")

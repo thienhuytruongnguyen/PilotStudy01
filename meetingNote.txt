@@ -1,0 +1,33 @@
+- introduction: gap, 
+
+section 2: motivated example, conceptual example, why bad, conceptual flow duration curve
+case study: implementatio of the process, WGEN Fr4j
+
+results: story of results
+
+records length, what the clibration do in fixing rainfall attribtue
+
+AGENDA: timeline - intro skeleton - coding
+
+I havent figure out what are the results that I am planning to deliver in the paper yet. so in the next week I will work on a plan for results to be discussed. but at this point to do you have any sugestion that I should look into in terms of planning what I should include in the result?
+
+goal: obtain calibrated parameters
+
+what is the stoping point of the optimisation?
+
+would you agree on running optimization with 1 realisation of rainfall?
+
+different site different catchment behaviour reason why it is bad in the results. summary out of 20 sites into category 
+
+runoff coeeficient . aridity index for site
+run mulyiple sitye. what make ist bad the streamfglow
+
+04/02 bree office
+
+story of literature: SRM exist - known that rainfall can have error on streamflow - surprise that ram aint evaluated agin streamflow. started with 2 - non linear efeect - list of type of erroer - focus onm rainfal runofff tranformation
+
+workit out ikn word
+
+scatterplot for friday
+
+box 

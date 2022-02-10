@@ -40,7 +40,7 @@ for (i in 1:20){
 save.image(file = "SCEOptimC.RData")
 
 #----plotting------------------------------------------------
-simFlowRep_Opt <- getSimFlowRep_Opt(theta = thetaTrialIM,
+simFlowRep_Opt <- getSimFlowRep_Opt(theta = thetaTrialSepmonth,
                                     paramGR4J = paramGR4J,
                                     rep = 100,
                                     obsRain = RainDat)
@@ -53,7 +53,7 @@ indRainDate <- makeObsDates(RainDat[,1])
 pdf(
   file = paste(
     WD,
-    "/Results&Plots/SCEoptim/JJAParameter.pdf", sep=""),
+    "/Results&Plots/SCEoptim/OF2.pdf", sep=""),
   width = 8.25,
   height = 11.75
 )
@@ -129,10 +129,12 @@ compareAnnualMaxima(indObsDate = indFlowDate,
 
 mtext("Daily annual maxima (Flow)")
 RainDatFormat <- format_TimeSeries(RainDat)
+plotFlowPercentilesV2.0(obs = virObsFlow, sim = simFlowRep, indFlowDate = indFlowDate, optimSim = simFlowRep_Opt[[1]], mod="2")
 wetday_monthlystats_plot(RainDatFormat, simFlowRep_Opt[[2]], type = "boxplot")
 monthlytotal_stats_plot(RainDatFormat, simFlowRep_Opt[[2]], type = "boxplot")
 compareMean3dayTotal(obs = RainDat$Value, sim = simFlowRep_Opt[[3]], indObsDate = indRainDate)
 compareMean5dayTotal(obs = RainDat$Value, sim = simFlowRep_Opt[[3]], indObsDate = indRainDate)
+
 #Dry Spell Plot
 month <-
   c("Jan",
@@ -215,10 +217,10 @@ for (i in 1:10){
 
 paramWGEN_IM <- paramWGEN
 
-paramWGEN_IM[6:8,1] <- thetaTrialIM10[1:3]
-paramWGEN_IM[6:8,2] <- thetaTrialIM10[4:6]
-paramWGEN_IM[6:8,3] <- thetaTrialIM10[7:9]
-paramWGEN_IM[6:8,4] <- thetaTrialIM10[10:12]
+paramWGEN_IM[8,1] <- occurParam[1]
+paramWGEN_IM[8,2] <- occurParam[2]
+paramWGEN_IM[8,3] <- amountParam[1]
+paramWGEN_IM[8,4] <- amountParam[2]
 
 thetaTrialIM <- rep(0,48)
 thetaTrialIM[1:12]<-paramWGEN_IM[1:12,1]; thetaTrialIM[13:24]<-paramWGEN_IM[1:12,2]

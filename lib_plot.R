@@ -396,7 +396,7 @@ plotFlowDurationCurve <- function (simFlowRep,
         
       }
       #Start plot
-      plot(virObsExceedProb$Exceedance_Probability[!is.na(virObsExceedProb$Flow)],virObsExceedProb$Flow[!is.na(virObsExceedProb$Flow)], log="y", ylim = ylim , type="p", lwd = 0.5, ann = FALSE)
+      plot(virObsExceedProb$Exceedance_Probability[!is.na(virObsExceedProb$Flow)],virObsExceedProb$Flow[!is.na(virObsExceedProb$Flow)], ylim = ylim , type="p", lwd = 0.5, ann = FALSE)
       title(ylab = ylab, xlab = xlab, line = 2.5)
       legend("topright", legend = c("VirObs Flow","Sim. 90% PL", "Sim. Median", "in Log Scale"),
              col = c("black","red","darkblue"), lty = c(1,2,3,0), lwd = 2, cex = 0.8)
@@ -452,7 +452,7 @@ plotFlowDurationCurve <- function (simFlowRep,
       ylim <- c(ylower,yupper)
       
       #Start plot
-      plot(virObsExceedProb, log="y",type="p",ylim = ylim, lwd = .5, ann = FALSE)
+      plot(virObsExceedProb,type="l",log='y',ylim = ylim, lwd = 2.5, ann = FALSE)
       title(ylab = ylab, xlab = xlab, line = 2.5)
       legend("topright", legend = c("VirObs Flow","Sim. 90% PL", "Sim. Median", "in Log Scale"),
              col = c("black","red","darkblue"), lty = c(1,2,3,0), lwd = 1, cex = 0.8)
@@ -531,7 +531,7 @@ compareAnnualMaxima <- function(indObsDate,
   abline(h = seq(0, 200, 20), v = xticks, col = "lightgray", lty = 3)
   
   legend("topleft", legend = c("Obs","Sim. 90% PL", "Sim. Median"),
-         col = c("black","red","red"), pch = c(4,NA,1), lty = c(0,3,0), lwd = 1, cex = 0.8)
+         col = c("black","red","red"), pch = c(4,NA,1), lty = c(0,3,0), lwd = 1.6, cex = 0.8)
   #Line CI boundary and median
   lines(lowerExceedProb, col="red",lwd=1, lty=3)                    
   lines(upperExceedProb, col="red",lwd=1, lty=3)
@@ -855,4 +855,142 @@ plotMaster <- function(WD,
   
   
   dev.off()
+}
+
+plotFlowPercentiles <- function(obs, sim, indFlowDate){
+  
+  obsPerc <- getObsPercentile(obs, indFlowDate)
+  simPerc <- getSimPercentile(sim, indFlowDate)
+  perc <- c(0.1, 0.25, 0.5, 0.75, 0.90, 0.95, 0.99)
+  percName <- c("10th", "25th", "50th", "75th", "90th", "95th", "99th")
+  simPercStore <- list()
+  
+  for (i in 1:length(perc)){
+    df <- matrix(NA,rep,12)##Each stats is a dataframe that has rep rows and 12 columns corresponding for 12 months
+    simPercStore[[i]] <- df
+    colnames(simPercStore[[i]]) <- c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+    for (j in 1:12){##Loops for each month
+      simPercStore[[i]][,j] <- (simPerc[[j]][i,])##Collect the stats values of each month
+    }
+    
+    title <- paste(percName[i], "percentile of flow (mm)", sep = " ")
+    
+    if (min(simPercStore[[i]])<min(obsPerc[i,])){
+      min.range = min(simPercStore[[i]])
+    } else {min.range = min(obsPerc[i,])}
+    if (max(simPercStore[[i]])>max(obsPerc[i,])){
+      max.range = max(simPercStore[[i]])
+    } else {max.range = max(obsPerc[i,])}
+    
+    boxplot.ext(simPercStore[[i]],
+                ylim=c(min.range,max.range),
+                whiskersProb = c(0.05,0.95))
+    points((obsPerc[i,]),col="red",pch=3)
+    title(main = title)
+  }
+}
+
+plotFlowPercentilesV2.0 <- function(obs, sim, indFlowDate, optimSim, mod = "1"){
+  
+  obsPerc <- getObsPercentile(obs, indFlowDate)
+  simPerc <- getSimPercentile(sim, indFlowDate)
+  
+  if (mod == "1"){
+    simTemp <- list()
+    #par(mfrow = c(2,4))
+    percName <- c("10th", "25th", "50th", "75th", "90th", "95th", "99th")
+    perc <- c(0.1, 0.25, 0.5, 0.75, 0.90, 0.95, 0.99)
+    for (i in 1:length(perc)){
+      df <- matrix(NA,12,100)##Each stats is a dataframe that has rep rows and 12 columns corresponding for 12 months
+      simTemp[[i]] <- df
+      #colnames(simPercStore[[i]]) <- c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+      for (j in 1:12){##Loops for each month
+        simTemp[[i]][j,] <- (simPerc[[j]][i,])##Collect the stats values of each month
+      }
+      
+      lower <- apply(simTemp[[i]],1,percentile5)
+      upper <- apply(simTemp[[i]],1,percentile95)
+      median <- apply(simTemp[[i]],1,percentile50)
+      
+      xpoly <- c(rev(seq(1,12)),seq(1,12))
+      ypoly <- c(rev(upper), lower)
+      
+      title <- paste(percName[i], "percentile of flow (mm)", sep = " ")
+      
+      if (min(simTemp[[i]])<min(obsPerc[i,])){
+        min.range = min(simTemp[[i]])
+      } else {min.range = min(obsPerc[i,])}
+      if (max(simTemp[[i]])>max(obsPerc[i,])){
+        max.range = max(simTemp[[i]])
+      } else {max.range = max(obsPerc[i,])}
+      
+      
+      plot(obsPerc[i,], type = "b", col = "black", ylim=c(min.range,max.range), xlab="", ylab="", xaxt = "n")
+      polygon(xpoly, ypoly, col = rgb(red = 1, green = 0.4, blue = 0.1, alpha = 0.3), border = NA)
+      lines(lower, lty = 5, col = "red")
+      lines(upper, lty = 5, col = "red")
+      lines(median, lty = 3, col = "brown")
+      title(ylab = title)
+      axis(1, at = 1:12, labels = c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"))
+      legend("topleft", legend = c("VirObs Flow","Sim. 90% PL", "Sim. Median", "in Log Scale"),
+             col = c("black","red","darkblue"), lty = c(1,2,3,0), lwd = 2, cex = 0.8)
+    }
+    
+  }
+  if (mod == "2"){
+    optimSimPerc <- getSimPercentile(optimSim, indFlowDate)
+    optimSimTemp <- list()
+    simTemp <- list()
+    #par(mfrow = c(2,2))
+    percName <- c("10th", "25th", "50th", "75th", "90th", "95th", "99th")
+    perc <- c(0.1, 0.25, 0.5, 0.75, 0.90, 0.95, 0.99)
+    for (i in 1:length(perc)){
+      df <- matrix(NA,12,100)##Each stats is a dataframe that has rep rows and 12 columns corresponding for 12 months
+      optimSimTemp[[i]] <- df
+      simTemp[[i]] <- df
+      #colnames(simPercStore[[i]]) <- c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+      for (j in 1:12){##Loops for each month
+        optimSimTemp[[i]][j,] <- (optimSimPerc[[j]][i,])##Collect the stats values of each month
+        simTemp[[i]][j,] <- (simPerc[[j]][i,])
+      }
+      
+      lower1 <- apply(simTemp[[i]],1,percentile5)
+      upper1 <- apply(simTemp[[i]],1,percentile95)
+      median1 <- apply(simTemp[[i]],1,percentile50)
+      
+      xpoly1 <- c(rev(seq(1,12)),seq(1,12))
+      ypoly1 <- c(rev(upper1), lower1)
+      
+      lower2 <- apply(optimSimTemp[[i]],1,percentile5)
+      upper2 <- apply(optimSimTemp[[i]],1,percentile95)
+      median2 <- apply(optimSimTemp[[i]],1,percentile50)
+      
+      xpoly2 <- c(rev(seq(1,12)),seq(1,12))
+      ypoly2 <- c(rev(upper2), lower2)
+      
+      title <- paste(percName[i], "percentile of flow (mm)", sep = " ")
+      
+      if (min(optimSimTemp[[i]])<min(simTemp[[i]])){
+        min.range = min(optimSimTemp[[i]])
+      } else {min.range = min(simTemp[[i]])}
+      if (max(optimSimTemp[[i]])>max(simTemp[[i]])){
+        max.range = max(optimSimTemp[[i]])
+      } else {max.range = max(simTemp[[i]])}
+      
+      
+      plot(obsPerc[i,], type = "b", col = "black", ylim=c(min.range,max.range), xlab="", ylab="", xaxt = "n", lwd = 3)
+      polygon(xpoly1, ypoly1, col = rgb(red = 1, green = 0.4, blue = 0.1, alpha = 0.4), border = NA)
+      polygon(xpoly2, ypoly2, col = rgb(red = 0.11, green = 0.4, blue = 1, alpha = 0.4), border = NA)
+      lines(lower1, lty = 1, col = "red", lwd = 1.6)
+      lines(upper1, lty = 1, col = "red", lwd = 1.6)
+      lines(median1, lty = 5, col = "brown", lwd = 1.6)
+      lines(lower2, lty = 1, col = "blue", lwd = 1.6)
+      lines(upper2, lty = 1, col = "blue", lwd = 1.6)
+      lines(median2, lty = 5, col = "blue2", lwd = 1.6)
+      title(ylab = title)
+      axis(1, at = 1:12, labels = c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"))
+      legend("topleft", legend = c("VirObs Flow","Sim. 90% PL", "Optim. Sim. 90% PL", "Sim. Median", "Optim. Sim. Median"),
+             col = c("black","red","blue","brown","blue2"),pch = c(1,NA,NA,NA,NA), lty = c(NA,1,1,2,2), lwd = 1.6, cex = 0.8)
+    }
+  }
 }

@@ -1,0 +1,5 @@
+Meeting 35 - AGENDA:
+- Scatter plots
+- Plan for simulation and getting results
+- aridity index
+- research gap

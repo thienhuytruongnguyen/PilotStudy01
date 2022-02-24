@@ -1651,3 +1651,197 @@ getObsPercentile <- function(obs,
   }
   return(virObsMonthlyPerc)
 }
+
+##----------------------------------------##
+##calculate stastistic for wet days
+wetDayStats <- function(value){
+  
+  require(moments)
+  pred.stats <- vector(length = 3)
+  
+  wet.day.dat <- subset(value,value!=0)
+  
+  pred.stats[1] = mean(wet.day.dat)
+  pred.stats[3] = sd(wet.day.dat)
+  pred.stats[2] = skewness(wet.day.dat)
+  
+  return(pred.stats)
+}
+##----------------------------------------##
+getCASEWetDayMonthly <- function(obs, sim, indDate){
+  #get mean monthly wet day amount stats for obs
+  obsMonthlyWetDayStats <- matrix(NA,3,12) #Mean, SD, Skew
+  for (i in 1:12){##Loop for 12 months
+    obsMonthlyWetDayStats[,i] <- wetDayStats(obs[indDate$i.mm[[i]]]) ##Calculate the statistics using fn wet_day_stats()
+  }
+  
+  #get monthly wet day stats for sim
+  monthstats.list <- list()
+  for (i in 1:12){## Loop for 12 months
+    df <- matrix(NA,nrow = 3, ncol = ncol(sim)) #Declare property of the statistics dataframe: 
+    monthstats.list[[i]] <- df #3 rows for 5 stats, rep columns for number of rep
+    
+    for(j in 1:ncol(sim)){ ## Loop for number of replicates
+      monthstats.list[[i]][,j] <- wetDayStats(sim[indDate$i.mm[[i]],j]) ## calculating the statistics using the fn wet_day_stats()
+    }
+  }
+  
+  CASEMonthlyWetDay <- matrix(NA,3,12)
+  rownames(CASEMonthlyWetDay) <- c("Mean", "SD", "Skew")
+  for (i in 1:12){
+    for (j in 1:3){
+      lower90 <- quantile(monthstats.list[[i]][j,], probs = 0.05)
+      upper90 <- quantile(monthstats.list[[i]][j,], probs = 0.95)
+      lower997 <- quantile(monthstats.list[[i]][j,], probs = 0.0015)
+      upper997 <- quantile(monthstats.list[[i]][j,],probs = 0.9985)
+      absRelDiff <- abs((mean(monthstats.list[[i]][j,])-obsMonthlyWetDayStats[j,i])/obsMonthlyWetDayStats[j,i])*100
+      if (obsMonthlyWetDayStats[j,i] > lower90 & obsMonthlyWetDayStats[j,i] < upper90){
+        CASEMonthlyWetDay[j,i] <- "Good"
+      }else if (obsMonthlyWetDayStats[j,i] > lower997 & obsMonthlyWetDayStats[j,i] < upper997){
+        CASEMonthlyWetDay[j,i] <- "Fair"
+      }else if (absRelDiff <= 5){
+        CASEMonthlyWetDay[j,i] <- "Fair"
+      }else{CASEMonthlyWetDay[j,i] <- "Poor"}
+    }
+  }
+  return(CASEMonthlyWetDay)
+}
+##----------------------------------------##
+
+getCASEMonthlyTotal <- function(obs, sim, indRainDate){
+  
+  obsMonthlyTotal <- data.frame(matrix(NA,length(indRainDate$i.ym),12))
+  monthlyWetDay <- data.frame(matrix(NA,length(indRainDate$i.ym),12))
+  for (i in 1:12){
+    for (j in 1:nrow(obsMonthlyTotal)){
+      obsMonthlyTotal[j,i] <- sum(obs[indRainDate$i.ym[[j]][[i]]])
+      monthlyWetDay[j,i] <- length(which(obs[indRainDate$i.ym[[j]][[i]]]>0))
+    }
+  }
+  obsMonthlyTotalStats <- matrix(NA,6,12)
+  obsMonthlyTotalStats[1,] <- sapply(obsMonthlyTotal,mean)
+  obsMonthlyTotalStats[2,] <- sapply(obsMonthlyTotal,sd)
+  obsMonthlyTotalStats[3,] <- sapply(obsMonthlyTotal,percentile5)
+  obsMonthlyTotalStats[4,] <- sapply(obsMonthlyTotal,percentile95)
+  obsMonthlyTotalStats[5,] <- sapply(monthlyWetDay,mean)
+  obsMonthlyTotalStats[6,] <- sapply(monthlyWetDay,sd)
+  
+  #get monthly wet day stats for sim
+  simMonthlyTotal <- list()
+  simMonthlyTotalStats <- list()
+  simWetDay <- list()
+  for (i in 1:12){## Loop for 12 months
+    df <- data.frame(matrix(NA,nrow = length(indRainDate$i.ym), ncol = ncol(sim)))
+    df1 <- matrix(NA,6,ncol(sim))#Declare property of the statistics dataframe: 
+    simMonthlyTotal[[i]] <- df #3 rows for 5 stats, rep columns for number of rep
+    simWetDay[[i]] <- df
+    simMonthlyTotalStats[[i]] <- df1
+    for(j in 1:ncol(sim)){ ## Loop for number of replicates
+      for (k in 1:length(indRainDate$i.ym)){
+        simMonthlyTotal[[i]][k,j] <- sum(sim[indRainDate$i.ym[[k]][[i]],j])
+        simWetDay[[i]][k,j] <- length(which(sim[indRainDate$i.ym[[k]][[i]],j]>0))
+      }
+    }
+    simMonthlyTotalStats[[i]][1,] <- sapply(simMonthlyTotal[[i]], mean)
+    simMonthlyTotalStats[[i]][2,] <- sapply(simMonthlyTotal[[i]], sd)
+    simMonthlyTotalStats[[i]][3,] <- sapply(simMonthlyTotal[[i]], percentile5)
+    simMonthlyTotalStats[[i]][4,] <- sapply(simMonthlyTotal[[i]], percentile95)
+    simMonthlyTotalStats[[i]][5,] <- sapply(simWetDay[[i]], mean)
+    simMonthlyTotalStats[[i]][6,] <- sapply(simWetDay[[i]], sd)
+  }
+  
+  CASEMonthlyTotal <- matrix(NA,6,12)
+  rownames(CASEMonthlyTotal) <- c("Mean", "SD", "5th", "95th","MeanWetDay", "SDWetDay")
+  for (i in 1:12){
+    for (j in 1:6){
+      lower90 <- quantile(simMonthlyTotalStats[[i]][j,], probs = 0.05)
+      upper90 <- quantile(simMonthlyTotalStats[[i]][j,], probs = 0.95)
+      lower997 <- quantile(simMonthlyTotalStats[[i]][j,], probs = 0.0015)
+      upper997 <- quantile(simMonthlyTotalStats[[i]][j,],probs = 0.9985)
+      absRelDiff <- abs((mean(simMonthlyTotalStats[[i]][j,])-obsMonthlyTotalStats[j,i])/obsMonthlyTotalStats[j,i])*100
+      if (obsMonthlyTotalStats[j,i] > lower90 & obsMonthlyTotalStats[j,i] < upper90){
+        CASEMonthlyTotal[j,i] <- "Good"
+      }else if (obsMonthlyTotalStats[j,i] > lower997 & obsMonthlyTotalStats[j,i] < upper997){
+        CASEMonthlyTotal[j,i] <- "Fair"
+      }else if (absRelDiff <= 5){
+        CASEMonthlyTotal[j,i] <- "Fair"
+      }else{CASEMonthlyTotal[j,i] <- "Poor"}
+    }
+  }
+  return(CASEMonthlyTotal)
+}
+##----------------------------------------##
+getCASEMeanDayTotal <- function(obs,sim,indRainDate){
+  #Calculate mean 3-day and mean 5-day total of obs
+  obs3Day <- getMean3dayTotal(obs, indRainDate)
+  obs5Day <- getMean5dayTotal(obs, indRainDate)
+  
+  #Calculate the same for sim
+  sim3Day <- data.frame(matrix(NA,ncol(sim),12))
+  sim5Day <- data.frame(matrix(NA,ncol(sim),12))
+  for (i in 1:ncol(sim)){
+    sim3Day[i,] <- getMean3dayTotal(sim[,i],indRainDate)
+    sim5Day[i,] <- getMean5dayTotal(sim[,i],indRainDate)
+  }
+  
+  CASEDayTotal <- matrix(NA,2,12)
+  rownames(CASEDayTotal) <- c("Mean3DayTotal", "Mean5DayTotal")
+  
+  for (i in 1:12){
+    lower90 <- quantile(sim3Day[,i], probs = 0.05)
+    upper90 <- quantile(sim3Day[,i], probs = 0.95)
+    lower997 <- quantile(sim3Day[,i], probs = 0.0015)
+    upper997 <- quantile(sim3Day[,i], probs = 0.9985)
+    absRelDiff <- abs((mean(sim3Day[,i])-obs3Day[i])/obs3Day[i])*100
+    if (obs3Day[i] > lower90 & obs3Day[i] < upper90){
+      CASEDayTotal[1,i] <- "Good"
+    }else if (obs3Day[i] > lower997 & obs3Day[i] < upper997){
+      CASEDayTotal[1,i] <- "Fair"
+    }else if (absRelDiff <= 5){
+      CASEDayTotal[1,i] <- "Fair"
+    }else{CASEDayTotal[1,i] <- "Poor"}
+  }
+  for (i in 1:12){
+    lower90 <- quantile(sim5Day[,i], probs = 0.05)
+    upper90 <- quantile(sim5Day[,i], probs = 0.95)
+    lower997 <- quantile(sim5Day[,i], probs = 0.0015)
+    upper997 <- quantile(sim5Day[,i], probs = 0.9985)
+    absRelDiff <- abs((mean(sim5Day[,i])-obs5Day[i])/obs5Day[i])*100
+    if (obs5Day[i] > lower90 & obs5Day[i] < upper90){
+      CASEDayTotal[2,i] <- "Good"
+    }else if (obs5Day[i] > lower997 & obs5Day[i] < upper997){
+      CASEDayTotal[2,i] <- "Fair"
+    }else if (absRelDiff <= 5){
+      CASEDayTotal[2,i] <- "Fair"
+    }else{CASEDayTotal[2,i] <- "Poor"}
+  }
+  return(CASEDayTotal) 
+}
+##----------------------------------------##
+getCASEPercFlow <- function(obsFlow, simFlow, indFlowDate){
+  
+  obsPerc <- getObsPercentile(obs = virObsFlow, indFlowDate = indFlowDate)
+  simPerc <- getSimPercentile(sim = simFlowRep, indFlowDate = indFlowDate)
+  
+  
+  CASEPercFlow <- matrix(NA,7,12)
+  rownames(CASEPercFlow) <- c("10th", "25th", "50th", "75th", "90th", "95th", "99th")
+  for (i in 1:12){
+    for (j in 1:7){
+      lower90 <- quantile(simPerc[[i]][j,], probs = 0.05)
+      upper90 <- quantile(simPerc[[i]][j,], probs = 0.95)
+      lower997 <- quantile(simPerc[[i]][j,], probs = 0.0015)
+      upper997 <- quantile(simPerc[[i]][j,],probs = 0.9985)
+      absRelDiff <- abs((mean(simPerc[[i]][j,])-obsPerc[j,i])/obsPerc[j,i])*100
+      if (obsPerc[j,i] > lower90 & obsPerc[j,i] < upper90){
+        CASEPercFlow[j,i] <- "Good"
+      }else if (obsPerc[j,i] > lower997 & obsPerc[j,i] < upper997){
+        CASEPercFlow[j,i] <- "Fair"
+      }else if (absRelDiff <= 5){
+        CASEPercFlow[j,i] <- "Fair"
+      }else{CASEPercFlow[j,i] <- "Poor"}
+    }
+  }
+  return(CASEPercFlow)
+}
+##----------------------------------------##

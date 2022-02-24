@@ -53,7 +53,7 @@ indRainDate <- makeObsDates(RainDat[,1])
 pdf(
   file = paste(
     WD,
-    "/Results&Plots/SCEoptim/OF2.pdf", sep=""),
+    "/Results&Plots/SCEoptim/OF2_Site8.pdf", sep=""),
   width = 8.25,
   height = 11.75
 )

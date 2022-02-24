@@ -64,12 +64,12 @@ thetaTrialSepmonth[25:36]<-optimParamWGEN[1:12,3]; thetaTrialSepmonth[37:48]<-op
 iniTheta <- rep(0,4); iniTheta[1] <- paramWGEN[8,1]; iniTheta[2] <-paramWGEN[8,2];
 iniTheta[3] <- paramWGEN[8,3]; iniTheta[4] <- paramWGEN[8,4]
 virObsFDC <- getExceedProb_V2.0(virObsFlow)
-SSEsingleMonth <- SSE_FDC_SingleMonth(theta = theta,
-                                      obsRain = RainDat[indRainDate$i.mm[[8]],2],
+SSEsingleMonth <- SSE_WeightedFDC_SingleMonth(theta = iniTheta,
+                                      obsRain = RainDat[indRainDate$i.mm[[2]],2],
                                       paramGR4J = paramGR4J_SepMonth[[1]],
                                       inputGR4J = paramGR4J_SepMonth[[3]],
                                       runOptionGR4J = paramGR4J_SepMonth[[4]],
-                                      virObsFDC = virObsFDC$flow)
+                                      virObsFDC = virObsFDCSM)
 #Run optim----
 
 lowerTheta <- rep(0,4)

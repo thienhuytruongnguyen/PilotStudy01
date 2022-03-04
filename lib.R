@@ -1767,10 +1767,12 @@ makeRainList <- function(simRainRep,
 }
 #---------------------------------------------#
 getSimPercentile <- function(sim,
-                             indFlowDate
+                             indFlowDate,
+                             perc = c(0.05, 0.1,0.25,0.5,0.75,0.90, 0.95, 0.99)
+
 ){
   simPercList <- list()
-  perc <- c(0.05, 0.5, 0.95)
+  
   rep = ncol(sim)
   
   for (i in 1:12){
@@ -1786,11 +1788,11 @@ getSimPercentile <- function(sim,
 #---------------------------------------------#
 getObsPercentile <- function(obs,
                              
-                             indFlowDate
+                             indFlowDate, perc = c(0.05, 0.1,0.25,0.5,0.75,0.90, 0.95, 0.99)
 ){
   #Calculate 7 percentiles 10th, 25th, 50th, 75th, 90th, 95th, 99th
-  virObsMonthlyPerc <- matrix(NA,7,12) #VirObs Percentiles store matrix
-  perc <- c(0.05, 0.5, 0.95)
+  virObsMonthlyPerc <- matrix(NA,length(perc),12) #VirObs Percentiles store matrix
+  
   for (p in 1:length(perc)){
     for (i in 1:12){
       virObsMonthlyPerc[p,i] <- quantile(obs[indFlowDate$i.mm[[i]]],probs = perc[p])
@@ -1971,10 +1973,10 @@ getCASEPercFlow <- function(obsFlow, simFlow, indFlowDate){
   simPerc <- getSimPercentile(sim = simFlow, indFlowDate = indFlowDate)
   
   
-  CASEPercFlow <- matrix(NA,3,12)
-  rownames(CASEPercFlow) <- c("5th","50th", "95th")
+  CASEPercFlow <- matrix(NA,nrow(obsPerc),12)
+  #rownames(CASEPercFlow) <- c("5th","50th", "95th")
   for (i in 1:12){
-    for (j in 1:3){
+    for (j in 1:nrow(obsPerc)){
       lower90 <- quantile(simPerc[[i]][j,], probs = 0.05)
       upper90 <- quantile(simPerc[[i]][j,], probs = 0.95)
       lower997 <- quantile(simPerc[[i]][j,], probs = 0.0015)

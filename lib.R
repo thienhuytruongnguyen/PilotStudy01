@@ -1353,8 +1353,8 @@ SSE_WeightedFDC_SingleMonthRE <-
     
     #Calculate the Sum of square Error
     err1 <- (simFDC$flow[which(simFDC$Prob<0.05)] - virObsFDC$flow[which(virObsFDC$Prob<0.05)])/virObsFDC$flow[which(virObsFDC$Prob<0.05)]
-    err2 <- (simFDC$flow[which(simFDC$Prob>0.05&simFDC$Prob<=0.5)] - virObsFDC$flow[which(virObsFDC$Prob>0.05&virObsFDC$Prob<=0.5)])/virObsFDC$flow[which(virObsFDC$Prob>0.05&virObsFDC$Prob<=0.5)]
-    err3 <- (simFDC$flow[which(simFDC$Prob>0.5)] - virObsFDC$flow[which(virObsFDC$Prob>0.5)])/virObsFDC$flow[which(virObsFDC$Prob>0.5)]
+    err2 <- (simFDC$flow[which(simFDC$Prob>0.05&simFDC$Prob<=0.8)] - virObsFDC$flow[which(virObsFDC$Prob>0.05&virObsFDC$Prob<=0.8)])/virObsFDC$flow[which(virObsFDC$Prob>0.05&virObsFDC$Prob<=0.8)]
+    err3 <- (simFDC$flow[which(simFDC$Prob>0.8)] - virObsFDC$flow[which(virObsFDC$Prob>0.8)])/virObsFDC$flow[which(virObsFDC$Prob>0.8)]
     
     
     SSE <- 0.005*(sum(err1^2)) + 0.99*sum(err2^2) + 0.005*(sum(err3^2))

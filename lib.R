@@ -1059,6 +1059,102 @@ SSE_FDC_SingleMonth <-
     return(SSE)
   }
 ##---------------------------------------##
+##---------------------------------------##
+SSE_FDC_SingleMonthRE <-
+  ##Calculate the SSE between simFlow and VirObs Flow of 1 single month
+  function(theta, #parameter to optimise
+           obsRain, #Observed Rainfall for 1 single month
+           paramGR4J, #Parameter of the GR4J
+           inputGR4J, #Input of the GR4J: Evapo-transpiration
+           runOptionGR4J, #
+           virObsFDC){ #Virtual observed flow duration curve of 1 single month
+    
+    #Passing element in theta to WGEN parameter
+    occurParam <- vector(length = 2)
+    occurParam[1] <- theta[1]; occurParam[2] <- theta[2]
+    
+    amountParam <- vector(length = 2)
+    amountParam[1] <- theta[3]; amountParam[2] <- theta[4]
+    
+    #declare simrain 
+    simRainRep <- vector(length = length(obsRain))
+    #Create the occurence binary series
+    set.seed(68)
+    U_t <- runif(length(obsRain),0,1)
+    bin <- MCmodel_C(length(U_t), occurParam[1], occurParam[2], U_t)
+    #make rain ts from gamma distribution
+    randRain <- rgamma(length(bin[bin==1]), amountParam[1], amountParam[2])
+    #attach rainfall amount to rain day  
+    bin[bin==1] <- randRain
+    #matching
+    simRainRep <- bin
+    
+    #Generate sim flow with sim rain
+    #add simRain to paramGR4J options
+    inputGR4J[[2]] <- simRainRep
+    #RunGR4J model with updated sim rain
+    outputGR4J <- airGR::RunModel_GR4J(InputsModel = inputGR4J, RunOptions = runOptionGR4J, Param = paramGR4J)
+    #Get sim flow from output GR4J
+    simFlowRep <- outputGR4J$Qsim
+    
+    #Calculate Exceedance Probability for sim flow and virobs flow
+    simFDC <- getExceedProb_V2.0(simFlowRep)
+    
+    #Calculate the Sum of square Error
+    err <- (virObsFDC-simFDC$flow)/simFDC$flow
+    SRE <- sum(err^2)
+    #SSE <- SSE*100
+    return(SRE)
+  }
+
+SSE_FDC_SingleMonthSRE <-
+  ##Calculate the SSE between simFlow and VirObs Flow of 1 single month
+  function(theta, #parameter to optimise
+           obsRain, #Observed Rainfall for 1 single month
+           paramGR4J, #Parameter of the GR4J
+           inputGR4J, #Input of the GR4J: Evapo-transpiration
+           runOptionGR4J, #
+           virObsFDC){ #Virtual observed flow duration curve of 1 single month
+    
+    #Passing element in theta to WGEN parameter
+    occurParam <- vector(length = 2)
+    occurParam[1] <- theta[1]; occurParam[2] <- theta[2]
+    
+    amountParam <- vector(length = 2)
+    amountParam[1] <- theta[3]; amountParam[2] <- theta[4]
+    
+    #declare simrain 
+    simRainRep <- vector(length = length(obsRain))
+    #Create the occurence binary series
+    set.seed(68)
+    U_t <- runif(length(obsRain),0,1)
+    bin <- MCmodel_C(length(U_t), occurParam[1], occurParam[2], U_t)
+    #make rain ts from gamma distribution
+    randRain <- rgamma(length(bin[bin==1]), amountParam[1], amountParam[2])
+    #attach rainfall amount to rain day  
+    bin[bin==1] <- randRain
+    #matching
+    simRainRep <- bin
+    
+    #Generate sim flow with sim rain
+    #add simRain to paramGR4J options
+    inputGR4J[[2]] <- simRainRep
+    #RunGR4J model with updated sim rain
+    outputGR4J <- airGR::RunModel_GR4J(InputsModel = inputGR4J, RunOptions = runOptionGR4J, Param = paramGR4J)
+    #Get sim flow from output GR4J
+    simFlowRep <- outputGR4J$Qsim
+    
+    #Calculate Exceedance Probability for sim flow and virobs flow
+    simFDC <- getExceedProb_V2.0(simFlowRep)
+    
+    #Calculate the Sum of square Error
+    MSE1 <- (virObsFDC-simFDC$flow)
+    MSE2 <- (virObsFDC-mean(virObsFDC))
+    SRE <- sum(MSE1^2)/sum(MSE2^2)
+    #SSE <- SSE*100
+    return(SRE)
+  }
+#####-
 SSE_FDCMeanWetDay_SingleMonth <-
   ##Calculate the SSE between simFlow and VirObs Flow of 1 single month
   function(theta, #parameter to optimise
@@ -1210,7 +1306,58 @@ SSE_WeightedFDC_SingleMonth <-
     err3 <- simFDC$flow[which(simFDC$Prob>0.5)] - virObsFDC$flow[which(virObsFDC$Prob>0.5)]
     
     
-    SSE <- 0.1*(sum(err1^2)) + 0.3*sum(err2^2) + 0.6*(sum(err3^2))
+    SSE <- 0.5*(sum(err1^2)) + 0.2*sum(err2^2)^2 + 0.3*(sum(err3^2))^3
+    
+    return(SSE)
+  }
+##---------------------------------------##
+SSE_WeightedFDC_SingleMonthRE <-
+  ##Calculate the SSE between simFlow and VirObs Flow of 1 single month
+  function(theta, #parameter to optimise
+           obsRain, #Observed Rainfall for 1 single month
+           paramGR4J, #Parameter of the GR4J
+           inputGR4J, #Input of the GR4J: Evapo-transpiration
+           runOptionGR4J, #
+           virObsFDC){ #Virtual observed flow duration curve of 1 single month
+    
+    #Passing element in theta to WGEN parameter
+    occurParam <- vector(length = 2)
+    occurParam[1] <- theta[1]; occurParam[2] <- theta[2]
+    
+    amountParam <- vector(length = 2)
+    amountParam[1] <- theta[3]; amountParam[2] <- theta[4]
+    
+    #declare simrain 
+    simRainRep <- vector(length = length(obsRain))
+    #Create the occurence binary series
+    set.seed(68)
+    U_t <- runif(length(obsRain),0,1)
+    bin <- MCmodel_C(length(U_t), occurParam[1], occurParam[2], U_t)
+    #make rain ts from gamma distribution
+    randRain <- rgamma(length(bin[bin==1]), amountParam[1], amountParam[2])
+    #attach rainfall amount to rain day  
+    bin[bin==1] <- randRain
+    #matching
+    simRainRep <- bin
+    
+    #Generate sim flow with sim rain
+    #add simRain to paramGR4J options
+    inputGR4J[[2]] <- simRainRep
+    #RunGR4J model with updated sim rain
+    outputGR4J <- airGR::RunModel_GR4J(InputsModel = inputGR4J, RunOptions = runOptionGR4J, Param = paramGR4J)
+    #Get sim flow from output GR4J
+    simFlowRep <- outputGR4J$Qsim
+    
+    #Calculate Exceedance Probability for sim flow
+    simFDC <- getExceedProb_V2.0(simFlowRep)
+    
+    #Calculate the Sum of square Error
+    err1 <- (simFDC$flow[which(simFDC$Prob<0.05)] - virObsFDC$flow[which(virObsFDC$Prob<0.05)])/virObsFDC$flow[which(virObsFDC$Prob<0.05)]
+    err2 <- (simFDC$flow[which(simFDC$Prob>0.05&simFDC$Prob<=0.5)] - virObsFDC$flow[which(virObsFDC$Prob>0.05&virObsFDC$Prob<=0.5)])/virObsFDC$flow[which(virObsFDC$Prob>0.05&virObsFDC$Prob<=0.5)]
+    err3 <- (simFDC$flow[which(simFDC$Prob>0.5)] - virObsFDC$flow[which(virObsFDC$Prob>0.5)])/virObsFDC$flow[which(virObsFDC$Prob>0.5)]
+    
+    
+    SSE <- 0.005*(sum(err1^2)) + 0.99*sum(err2^2) + 0.005*(sum(err3^2))
     
     return(SSE)
   }
@@ -1623,7 +1770,7 @@ getSimPercentile <- function(sim,
                              indFlowDate
 ){
   simPercList <- list()
-  perc <- c(0.1, 0.25, 0.5, 0.75, 0.90, 0.95, 0.99)
+  perc <- c(0.05, 0.5, 0.95)
   rep = ncol(sim)
   
   for (i in 1:12){
@@ -1643,11 +1790,261 @@ getObsPercentile <- function(obs,
 ){
   #Calculate 7 percentiles 10th, 25th, 50th, 75th, 90th, 95th, 99th
   virObsMonthlyPerc <- matrix(NA,7,12) #VirObs Percentiles store matrix
-  perc <- c(0.1, 0.25, 0.5, 0.75, 0.90, 0.95, 0.99)
-  for (p in 1:7){
+  perc <- c(0.05, 0.5, 0.95)
+  for (p in 1:length(perc)){
     for (i in 1:12){
       virObsMonthlyPerc[p,i] <- quantile(obs[indFlowDate$i.mm[[i]]],probs = perc[p])
     }
   }
   return(virObsMonthlyPerc)
+}
+
+##----------------------------------------##
+##calculate stastistic for wet days
+wetDayStats <- function(value){
+  
+  require(moments)
+  pred.stats <- vector(length = 3)
+  
+  wet.day.dat <- subset(value,value!=0)
+  
+  pred.stats[1] = mean(wet.day.dat)
+  pred.stats[3] = sd(wet.day.dat)
+  pred.stats[2] = skewness(wet.day.dat)
+  
+  return(pred.stats)
+}
+##----------------------------------------##
+getCASEWetDayMonthly <- function(obs, sim, indDate){
+  #get mean monthly wet day amount stats for obs
+  obsMonthlyWetDayStats <- matrix(NA,3,12) #Mean, SD, Skew
+  for (i in 1:12){##Loop for 12 months
+    obsMonthlyWetDayStats[,i] <- wetDayStats(obs[indDate$i.mm[[i]]]) ##Calculate the statistics using fn wet_day_stats()
+  }
+  
+  #get monthly wet day stats for sim
+  monthstats.list <- list()
+  for (i in 1:12){## Loop for 12 months
+    df <- matrix(NA,nrow = 3, ncol = ncol(sim)) #Declare property of the statistics dataframe: 
+    monthstats.list[[i]] <- df #3 rows for 5 stats, rep columns for number of rep
+    
+    for(j in 1:ncol(sim)){ ## Loop for number of replicates
+      monthstats.list[[i]][,j] <- wetDayStats(sim[indDate$i.mm[[i]],j]) ## calculating the statistics using the fn wet_day_stats()
+    }
+  }
+  
+  CASEMonthlyWetDay <- matrix(NA,3,12)
+  rownames(CASEMonthlyWetDay) <- c("Mean", "SD", "Skew")
+  for (i in 1:12){
+    for (j in 1:3){
+      lower90 <- quantile(monthstats.list[[i]][j,], probs = 0.05)
+      upper90 <- quantile(monthstats.list[[i]][j,], probs = 0.95)
+      lower997 <- quantile(monthstats.list[[i]][j,], probs = 0.0015)
+      upper997 <- quantile(monthstats.list[[i]][j,],probs = 0.9985)
+      absRelDiff <- abs((mean(monthstats.list[[i]][j,])-obsMonthlyWetDayStats[j,i])/obsMonthlyWetDayStats[j,i])*100
+      if (obsMonthlyWetDayStats[j,i] > lower90 & obsMonthlyWetDayStats[j,i] < upper90){
+        CASEMonthlyWetDay[j,i] <- "Good"
+      }else if (obsMonthlyWetDayStats[j,i] > lower997 & obsMonthlyWetDayStats[j,i] < upper997){
+        CASEMonthlyWetDay[j,i] <- "Fair"
+      }else if (absRelDiff <= 5){
+        CASEMonthlyWetDay[j,i] <- "Fair"
+      }else{CASEMonthlyWetDay[j,i] <- "Poor"}
+    }
+  }
+  return(CASEMonthlyWetDay)
+}
+##----------------------------------------##
+
+getCASEMonthlyTotal <- function(obs, sim, indRainDate){
+  
+  obsMonthlyTotal <- data.frame(matrix(NA,length(indRainDate$i.ym),12))
+  monthlyWetDay <- data.frame(matrix(NA,length(indRainDate$i.ym),12))
+  for (i in 1:12){
+    for (j in 1:nrow(obsMonthlyTotal)){
+      obsMonthlyTotal[j,i] <- sum(obs[indRainDate$i.ym[[j]][[i]]])
+      monthlyWetDay[j,i] <- length(which(obs[indRainDate$i.ym[[j]][[i]]]>0))
+    }
+  }
+  obsMonthlyTotalStats <- matrix(NA,6,12)
+  obsMonthlyTotalStats[1,] <- sapply(obsMonthlyTotal,mean)
+  obsMonthlyTotalStats[2,] <- sapply(obsMonthlyTotal,sd)
+  obsMonthlyTotalStats[3,] <- sapply(obsMonthlyTotal,percentile5)
+  obsMonthlyTotalStats[4,] <- sapply(obsMonthlyTotal,percentile95)
+  obsMonthlyTotalStats[5,] <- sapply(monthlyWetDay,mean)
+  obsMonthlyTotalStats[6,] <- sapply(monthlyWetDay,sd)
+  
+  #get monthly wet day stats for sim
+  simMonthlyTotal <- list()
+  simMonthlyTotalStats <- list()
+  simWetDay <- list()
+  for (i in 1:12){## Loop for 12 months
+    df <- data.frame(matrix(NA,nrow = length(indRainDate$i.ym), ncol = ncol(sim)))
+    df1 <- matrix(NA,6,ncol(sim))#Declare property of the statistics dataframe: 
+    simMonthlyTotal[[i]] <- df #3 rows for 5 stats, rep columns for number of rep
+    simWetDay[[i]] <- df
+    simMonthlyTotalStats[[i]] <- df1
+    for(j in 1:ncol(sim)){ ## Loop for number of replicates
+      for (k in 1:length(indRainDate$i.ym)){
+        simMonthlyTotal[[i]][k,j] <- sum(sim[indRainDate$i.ym[[k]][[i]],j])
+        simWetDay[[i]][k,j] <- length(which(sim[indRainDate$i.ym[[k]][[i]],j]>0))
+      }
+    }
+    simMonthlyTotalStats[[i]][1,] <- sapply(simMonthlyTotal[[i]], mean)
+    simMonthlyTotalStats[[i]][2,] <- sapply(simMonthlyTotal[[i]], sd)
+    simMonthlyTotalStats[[i]][3,] <- sapply(simMonthlyTotal[[i]], percentile5)
+    simMonthlyTotalStats[[i]][4,] <- sapply(simMonthlyTotal[[i]], percentile95)
+    simMonthlyTotalStats[[i]][5,] <- sapply(simWetDay[[i]], mean)
+    simMonthlyTotalStats[[i]][6,] <- sapply(simWetDay[[i]], sd)
+  }
+  
+  CASEMonthlyTotal <- matrix(NA,6,12)
+  rownames(CASEMonthlyTotal) <- c("Mean", "SD", "5th", "95th","MeanWetDay", "SDWetDay")
+  for (i in 1:12){
+    for (j in 1:6){
+      lower90 <- quantile(simMonthlyTotalStats[[i]][j,], probs = 0.05)
+      upper90 <- quantile(simMonthlyTotalStats[[i]][j,], probs = 0.95)
+      lower997 <- quantile(simMonthlyTotalStats[[i]][j,], probs = 0.0015)
+      upper997 <- quantile(simMonthlyTotalStats[[i]][j,],probs = 0.9985)
+      absRelDiff <- abs((mean(simMonthlyTotalStats[[i]][j,])-obsMonthlyTotalStats[j,i])/obsMonthlyTotalStats[j,i])*100
+      if (obsMonthlyTotalStats[j,i] > lower90 & obsMonthlyTotalStats[j,i] < upper90){
+        CASEMonthlyTotal[j,i] <- "Good"
+      }else if (obsMonthlyTotalStats[j,i] > lower997 & obsMonthlyTotalStats[j,i] < upper997){
+        CASEMonthlyTotal[j,i] <- "Fair"
+      }else if (absRelDiff <= 5){
+        CASEMonthlyTotal[j,i] <- "Fair"
+      }else{CASEMonthlyTotal[j,i] <- "Poor"}
+    }
+  }
+  return(CASEMonthlyTotal)
+}
+##----------------------------------------##
+getCASEMeanDayTotal <- function(obs,sim,indRainDate){
+  #Calculate mean 3-day and mean 5-day total of obs
+  obs3Day <- getMean3dayTotal(obs, indRainDate)
+  obs5Day <- getMean5dayTotal(obs, indRainDate)
+  
+  #Calculate the same for sim
+  sim3Day <- data.frame(matrix(NA,ncol(sim),12))
+  sim5Day <- data.frame(matrix(NA,ncol(sim),12))
+  for (i in 1:ncol(sim)){
+    sim3Day[i,] <- getMean3dayTotal(sim[,i],indRainDate)
+    sim5Day[i,] <- getMean5dayTotal(sim[,i],indRainDate)
+  }
+  
+  CASEDayTotal <- matrix(NA,2,12)
+  rownames(CASEDayTotal) <- c("Mean3DayTotal", "Mean5DayTotal")
+  
+  for (i in 1:12){
+    lower90 <- quantile(sim3Day[,i], probs = 0.05)
+    upper90 <- quantile(sim3Day[,i], probs = 0.95)
+    lower997 <- quantile(sim3Day[,i], probs = 0.0015)
+    upper997 <- quantile(sim3Day[,i], probs = 0.9985)
+    absRelDiff <- abs((mean(sim3Day[,i])-obs3Day[i])/obs3Day[i])*100
+    if (obs3Day[i] > lower90 & obs3Day[i] < upper90){
+      CASEDayTotal[1,i] <- "Good"
+    }else if (obs3Day[i] > lower997 & obs3Day[i] < upper997){
+      CASEDayTotal[1,i] <- "Fair"
+    }else if (absRelDiff <= 5){
+      CASEDayTotal[1,i] <- "Fair"
+    }else{CASEDayTotal[1,i] <- "Poor"}
+  }
+  for (i in 1:12){
+    lower90 <- quantile(sim5Day[,i], probs = 0.05)
+    upper90 <- quantile(sim5Day[,i], probs = 0.95)
+    lower997 <- quantile(sim5Day[,i], probs = 0.0015)
+    upper997 <- quantile(sim5Day[,i], probs = 0.9985)
+    absRelDiff <- abs((mean(sim5Day[,i])-obs5Day[i])/obs5Day[i])*100
+    if (obs5Day[i] > lower90 & obs5Day[i] < upper90){
+      CASEDayTotal[2,i] <- "Good"
+    }else if (obs5Day[i] > lower997 & obs5Day[i] < upper997){
+      CASEDayTotal[2,i] <- "Fair"
+    }else if (absRelDiff <= 5){
+      CASEDayTotal[2,i] <- "Fair"
+    }else{CASEDayTotal[2,i] <- "Poor"}
+  }
+  return(CASEDayTotal) 
+}
+##----------------------------------------##
+getCASEPercFlow <- function(obsFlow, simFlow, indFlowDate){
+  
+  obsPerc <- getObsPercentile(obs = obsFlow, indFlowDate = indFlowDate)
+  simPerc <- getSimPercentile(sim = simFlow, indFlowDate = indFlowDate)
+  
+  
+  CASEPercFlow <- matrix(NA,3,12)
+  rownames(CASEPercFlow) <- c("5th","50th", "95th")
+  for (i in 1:12){
+    for (j in 1:3){
+      lower90 <- quantile(simPerc[[i]][j,], probs = 0.05)
+      upper90 <- quantile(simPerc[[i]][j,], probs = 0.95)
+      lower997 <- quantile(simPerc[[i]][j,], probs = 0.0015)
+      upper997 <- quantile(simPerc[[i]][j,],probs = 0.9985)
+      absRelDiff <- abs((mean(simPerc[[i]][j,])-obsPerc[j,i])/obsPerc[j,i])*100
+      if (obsPerc[j,i] > lower90 & obsPerc[j,i] < upper90){
+        CASEPercFlow[j,i] <- "Good"
+      }else if (obsPerc[j,i] > lower997 & obsPerc[j,i] < upper997){
+        CASEPercFlow[j,i] <- "Fair"
+      }else if (absRelDiff <= 5){
+        CASEPercFlow[j,i] <- "Fair"
+      }else{CASEPercFlow[j,i] <- "Poor"}
+    }
+  }
+  return(CASEPercFlow)
+}
+##----------------------------------------##
+getCASEMonthlyTotalFlow <- function(obs, sim, indRainDate){
+  
+  obsMonthlyTotal <- data.frame(matrix(NA,length(indRainDate$i.ym),12))
+  monthlyWetDay <- data.frame(matrix(NA,length(indRainDate$i.ym),12))
+  for (i in 1:12){
+    for (j in 1:nrow(obsMonthlyTotal)){
+      obsMonthlyTotal[j,i] <- sum(obs[indRainDate$i.ym[[j]][[i]]])
+      monthlyWetDay[j,i] <- length(which(obs[indRainDate$i.ym[[j]][[i]]]>0))
+    }
+  }
+  obsMonthlyTotalStats <- matrix(NA,2,12)
+  obsMonthlyTotalStats[1,] <- sapply(obsMonthlyTotal,mean)
+  obsMonthlyTotalStats[2,] <- sapply(obsMonthlyTotal,sd)
+
+  
+  #get monthly wet day stats for sim
+  simMonthlyTotal <- list()
+  simMonthlyTotalStats <- list()
+  simWetDay <- list()
+  for (i in 1:12){## Loop for 12 months
+    df <- data.frame(matrix(NA,nrow = length(indRainDate$i.ym), ncol = ncol(sim)))
+    df1 <- matrix(NA,2,ncol(sim))#Declare property of the statistics dataframe: 
+    simMonthlyTotal[[i]] <- df #3 rows for 5 stats, rep columns for number of rep
+    simWetDay[[i]] <- df
+    simMonthlyTotalStats[[i]] <- df1
+    for(j in 1:ncol(sim)){ ## Loop for number of replicates
+      for (k in 1:length(indRainDate$i.ym)){
+        simMonthlyTotal[[i]][k,j] <- sum(sim[indRainDate$i.ym[[k]][[i]],j])
+        simWetDay[[i]][k,j] <- length(which(sim[indRainDate$i.ym[[k]][[i]],j]>0))
+      }
+    }
+    simMonthlyTotalStats[[i]][1,] <- sapply(simMonthlyTotal[[i]], mean)
+    simMonthlyTotalStats[[i]][2,] <- sapply(simMonthlyTotal[[i]], sd)
+
+  }
+  
+  CASEMonthlyTotal <- matrix(NA,2,12)
+  rownames(CASEMonthlyTotal) <- c("Mean", "SD")
+  for (i in 1:12){
+    for (j in 1:2){
+      lower90 <- quantile(simMonthlyTotalStats[[i]][j,], probs = 0.05)
+      upper90 <- quantile(simMonthlyTotalStats[[i]][j,], probs = 0.95)
+      lower997 <- quantile(simMonthlyTotalStats[[i]][j,], probs = 0.0015)
+      upper997 <- quantile(simMonthlyTotalStats[[i]][j,],probs = 0.9985)
+      absRelDiff <- abs((mean(simMonthlyTotalStats[[i]][j,])-obsMonthlyTotalStats[j,i])/obsMonthlyTotalStats[j,i])*100
+      if (obsMonthlyTotalStats[j,i] > lower90 & obsMonthlyTotalStats[j,i] < upper90){
+        CASEMonthlyTotal[j,i] <- "Good"
+      }else if (obsMonthlyTotalStats[j,i] > lower997 & obsMonthlyTotalStats[j,i] < upper997){
+        CASEMonthlyTotal[j,i] <- "Fair"
+      }else if (absRelDiff <= 5){
+        CASEMonthlyTotal[j,i] <- "Fair"
+      }else{CASEMonthlyTotal[j,i] <- "Poor"}
+    }
+  }
+  return(CASEMonthlyTotal)
 }

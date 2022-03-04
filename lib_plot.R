@@ -898,8 +898,8 @@ plotFlowPercentilesV2.0 <- function(obs, sim, indFlowDate, optimSim, mod = "1"){
   if (mod == "1"){
     simTemp <- list()
     #par(mfrow = c(2,4))
-    percName <- c("10th", "25th", "50th", "75th", "90th", "95th", "99th")
-    perc <- c(0.1, 0.25, 0.5, 0.75, 0.90, 0.95, 0.99)
+    percName <- c("5th", "50th", "95th")
+    perc <- c(0.05, 0.5, 0.95)
     for (i in 1:length(perc)){
       df <- matrix(NA,12,100)##Each stats is a dataframe that has rep rows and 12 columns corresponding for 12 months
       simTemp[[i]] <- df
@@ -942,8 +942,8 @@ plotFlowPercentilesV2.0 <- function(obs, sim, indFlowDate, optimSim, mod = "1"){
     optimSimTemp <- list()
     simTemp <- list()
     #par(mfrow = c(2,2))
-    percName <- c("10th", "25th", "50th", "75th", "90th", "95th", "99th")
-    perc <- c(0.1, 0.25, 0.5, 0.75, 0.90, 0.95, 0.99)
+    percName <- c("5th", "50th", "95th")
+    perc <- c(0.05, 0.5, 0.95)
     for (i in 1:length(perc)){
       df <- matrix(NA,12,100)##Each stats is a dataframe that has rep rows and 12 columns corresponding for 12 months
       optimSimTemp[[i]] <- df

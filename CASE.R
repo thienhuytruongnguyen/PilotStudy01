@@ -19,26 +19,26 @@ CASEMonthlyTotoal<-getCASEMonthlyTotal(obs = obs, sim = rep, indRainDate = indRa
 CASEMonthlyWetDay <- getCASEWetDayMonthly(obs = obs, sim = rep, indDate = indRainDate)
 CASEMeanDayTotal <- getCASEMeanDayTotal(obs = obs, sim = rep, indRainDate = indRainDate)
 CASERainMatrixORG <- rbind(CASEMonthlyWetDay,CASEMonthlyTotoal,CASEMeanDayTotal)
-write.csv(CASERainMatrixORG,file = "resultCASE/rainCASEORG_Site25.csv")
+write.csv(CASERainMatrixORG,file = "resultCASE/rainCASEORG_Site08.csv")
 
 #Get CASE for optim rain
 CASEMonthlyTotoal<-getCASEMonthlyTotal(obs = obs, sim = repoptim, indRainDate = indRainDate)
 CASEMonthlyWetDay <- getCASEWetDayMonthly(obs = obs, sim = repoptim, indDate = indRainDate)
 CASEMeanDayTotal <- getCASEMeanDayTotal(obs = obs, sim = repoptim, indRainDate = indRainDate)
 CASERainMatrixOPT <- rbind(CASEMonthlyWetDay,CASEMonthlyTotoal,CASEMeanDayTotal)
-write.csv(CASERainMatrixOPT,file = "resultCASE/rainCASEOPT_Site10.csv")
+write.csv(CASERainMatrixOPT,file = "resultCASE/rainCASEOPT_Site08.csv")
 
 
 #Get CASE for original flow
 CASEPercFlow <- getCASEPercFlow(obsFlow = virObsFlow, simFlow = simFlowRep, indFlowDate = indFlowDate)
 CASEMonthlyTotoal<-getCASEMonthlyTotalFlow(obs = virObsFlow, sim = simFlowRep, indRainDate = indFlowDate)
 CASEFlowMatrixORG <- rbind(CASEPercFlow, CASEMonthlyTotoal)
-write.csv(CASEFlowMatrixORG,file = "resultCASE/flowCASEORG_Site25.csv")
+write.csv(CASEFlowMatrixORG,file = "resultCASE/flowCASEORG_Site08.csv")
 
 #Get CASE for optim flow
 CASEPercFlow <- getCASEPercFlow(obsFlow = virObsFlow, simFlow = simFlowRep_Opt[[1]], indFlowDate = indFlowDate)
 CASEMonthlyTotoal<-getCASEMonthlyTotalFlow(obs = virObsFlow, sim = simFlowRep_Opt[[1]], indRainDate = indFlowDate)
 CASEFlowMatrixOPT <- rbind(CASEPercFlow, CASEMonthlyTotoal)
-write.csv(CASEFlowMatrixOPT,file = "resultCASE/flowCASEOPT_Site19.csv")
+write.csv(CASEFlowMatrixOPT,file = "resultCASE/flowCASEOPT_Site08.csv")
 
 

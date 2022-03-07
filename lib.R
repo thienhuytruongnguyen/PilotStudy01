@@ -290,7 +290,7 @@ WGEN_V2.0 <- function(occurParam,
 WGEN_V3.0 <- function(occurParam,
                              amountParam,
                              rep,
-                             indRainDate){
+                             indRainDate,seed){
   #declare simrain dataframe
   simRainRep <- data.frame(matrix(NA, nrow = indRainDate$nDy, ncol = rep))
   #Loop for each month
@@ -298,10 +298,10 @@ WGEN_V3.0 <- function(occurParam,
     #Loop for each replicate
     for (j in 1:rep){
       #Create the occurence binary series
-      set.seed(68)
+      #set.seed(seed[j])
       bin <- MCmodel(length(indRainDate$i.mm[[i]]), occurParam[i,1], occurParam[i,2])
       #make rain ts from gamma distribution
-      set.seed(68)
+      #set.seed(seed[j])
       randRain <- rgamma(length(bin[bin==1]), amountParam[i,1], amountParam[i,2])
       
       bin[bin==1] <- randRain
@@ -334,15 +334,16 @@ Rcpp::cppFunction('NumericVector MCmodel_C(int n,double PDW, double PWW, Numeric
 WGEN_V4.0 <- function(occurParam,
                              amountParam,
                              rep,
-                             indRainDate){
+                             indRainDate,seed){
   #declare simrain dataframe
   simRainRep <- matrix(NA, nrow = indRainDate$nDy, ncol = rep)
+
   #Loop for each month
   for (i in 1:12){
     #Loop for each replicate
     for (j in 1:rep){
       #Create the occurence binary series
-      #set.seed(68)
+      set.seed(seed[j])
       U_t <- runif(length(indRainDate$i.mm[[i]]),0,1)
       bin <- MCmodel_C(length(U_t), occurParam[i,1], occurParam[i,2], U_t)
       #make rain ts from gamma distribution
@@ -408,7 +409,7 @@ expo.loglike <- function(theta,obs.data){
 }
 ##----------------------------------------##
 #get SimRain (WGEN model)
-getSimRain <- function(obs.data, rep = 10, mod = "gama", option = "MLE", threshold, indRainDate){
+getSimRain <- function(obs.data, rep = 10, mod = "gama", option = "MLE", threshold, indRainDate, seed){
 
   if (option == "MLE"){
     #Declaring model parameters objects
@@ -433,7 +434,7 @@ getSimRain <- function(obs.data, rep = 10, mod = "gama", option = "MLE", thresho
     amount.param <- fitAmountModel_MoM(obs.data)
     
     #Simulating
-    simRainRep <- WGEN_V4.0(occur.param, amount.param, rep, indRainDate)
+    simRainRep <- WGEN_V4.0(occur.param, amount.param, rep, indRainDate,seed)
     
     return(list(simRainRep, occur.param, amount.param))
   }
@@ -462,6 +463,16 @@ percentile95 <- function(x){
 
 percentile50 <- function(x){
   perc <- quantile(x,prob=0.5)
+  return(perc)
+}
+
+percentile10 <- function(x){
+  perc <- quantile(x,prob=0.1)
+  return(perc)
+}
+
+percentile90 <- function(x){
+  perc <- quantile(x,prob=0.9)
   return(perc)
 }
 ##----------------------------------------##
@@ -1356,8 +1367,24 @@ SSE_WeightedFDC_SingleMonthRE <-
     err2 <- (simFDC$flow[which(simFDC$Prob>0.05&simFDC$Prob<=0.8)] - virObsFDC$flow[which(virObsFDC$Prob>0.05&virObsFDC$Prob<=0.8)])/virObsFDC$flow[which(virObsFDC$Prob>0.05&virObsFDC$Prob<=0.8)]
     err3 <- (simFDC$flow[which(simFDC$Prob>0.8)] - virObsFDC$flow[which(virObsFDC$Prob>0.8)])/virObsFDC$flow[which(virObsFDC$Prob>0.8)]
     
+    #Applying weights
+    SSE1 <- sum(err1^2)
+    SSE2 <- sum(err2^2)
+    SSE3 <- sum(err3^2)
     
-    SSE <- 0.005*(sum(err1^2)) + 0.99*sum(err2^2) + 0.005*(sum(err3^2))
+    if (SSE1>SSE2 & SSE1>SSE3){
+      
+      SSE <- 0.8*(sum(err1^2)) + 0.1*sum(err2^2) + 0.1*(sum(err3^2))
+      
+    } else if (SSE3>SSE2 & SSE3>SSE1){
+      
+      SSE <- 0.1*(sum(err1^2)) + 0.1*sum(err2^2) + 0.8*(sum(err3^2))
+      
+    } else if (SSE2>SSE3 & SSE2>SSE1){
+      
+      SSE <- 0.1*(sum(err1^2)) + 0.8*sum(err2^2) + 0.1*(sum(err3^2))
+      
+    }
     
     return(SSE)
   }
@@ -1365,7 +1392,7 @@ SSE_WeightedFDC_SingleMonthRE <-
 getSimFlowRep_Opt <- function(theta,
                               paramGR4J,
                               rep=100,
-                              obsRain){
+                              obsRain,seed){
   
   paramMC <- data.frame(matrix(NA,12,2))
   paramMC[,1] <- theta[1:12]; paramMC[,2] <- theta[13:24]
@@ -1373,7 +1400,7 @@ getSimFlowRep_Opt <- function(theta,
   paramAmount[,1] <- theta[25:36]; paramAmount[,2] <- theta[37:48]
   
   indRainDate <- makeObsDates(obsRain[,1])
-  simRainRep_Opt <- WGEN_V4.0(paramMC, paramAmount, rep = rep, indRainDate = indRainDate)
+  simRainRep_Opt <- WGEN_V4.0(paramMC, paramAmount, rep = rep, indRainDate = indRainDate,seed)
   simRainList_Opt <- makeRainList(simRainRep_Opt, indRainDate)
   
   simFlowRep_Opt <-

@@ -1,8 +1,8 @@
 #------------------Runoff Model----------------------------------
 optimParamWGEN <- paramWGEN
   
-for (k in 1:6){
-  for (i in 4:10){
+for (k in 1:5){
+  for (i in 4:9){
     ##Set GR4J model parameter
     inputGR4J_SepMonth <-
       makeInputGR4J(
@@ -42,13 +42,13 @@ for (k in 1:6){
     upperTheta[1:2] = 1; upperTheta[3:4] = Inf
     
     #Run SCE optim
-    optResult <- hydromad::SCEoptim(FUN = SSE_FDC_SingleMonthRE,
+    optResult <- hydromad::SCEoptim(FUN = SSE_WeightedFDC_SingleMonthRE,
                                     par = iniTheta,
                                     obsRain = RainDat[indRainDate$i.mm[[i]],2],
                                     paramGR4J = paramGR4J_SepMonth[[1]],
                                     inputGR4J = paramGR4J_SepMonth[[3]],
                                     runOptionGR4J = paramGR4J_SepMonth[[4]],
-                                    virObsFDC = virObsFDCSM$flow,
+                                    virObsFDC = virObsFDCSM,
                                     lower = lowerTheta,
                                     upper = upperTheta)
     
@@ -66,7 +66,7 @@ thetaTrialSepmonth[25:36]<-optimParamWGEN[1:12,3]; thetaTrialSepmonth[37:48]<-op
 simFlowRep_Opt <- getSimFlowRep_Opt(theta = thetaTrialSepmonth,
                                     paramGR4J = paramGR4J,
                                     rep = 100,
-                                    obsRain = RainDat)
+                                    obsRain = RainDat,seed)
 
 
 simRainRep_Opt <- getSimRainRep(simFlowRep_Opt[[2]])
@@ -115,7 +115,9 @@ mtext(siloStation,
 plotFlowDurationCurve(simFlowRep = simFlowRep_Opt[[1]],
                       virObsFlow = virObsFlow,
                       option = "withCILimit")
-
+plotFlowDurationCurve(simFlowRep = simFlowRep,
+                      virObsFlow = virObsFlow,
+                      option = "withCILimit")
 outlet <-
   paste(
     " Flow Duration Curve",

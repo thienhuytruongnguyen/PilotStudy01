@@ -1,0 +1,13 @@
+Discussion: 
+Catchment model applifying errors in rainfall
+- in those case (result) we would have rainfall model that consider to capture good rainfall characteristics at monthly and aggregate but turn into poor streamflow prediction. The errors are limited to rainfall model, observed rainfall
+- there must be some rainfall attributes that is wrongly modelled such as the occurence. Noted that WGEN only have a 1st ordered markov so cannot capture the correlation of wet dry pattern in the observed eventhough the number of wet day is well capture. Perhapes the sim flows are more sensitive towards rainfall intermittency. Bootstrap techniques can be used to investigate this 
+
+Limit:
+statistic that we are looking at is purely monthly - not capturing seasoning pattern. Some hidden statistic that cannot be explore to show a direct indication of why there is poor streamflow from model
+
+some instances where SRM are used for streamflow prediction. It is important that the sim rianfall translated to good streamflow statistics. it is like using a good but wrong tool for a job
+
+shine a light on recognising problem where good rainfall are used as a wrong tool for streamflow prediction
+
+so it is good to know that what rainfall attributes are most important then use the hydrologic calibration to calibrate to those rainfall statistics/model parameters

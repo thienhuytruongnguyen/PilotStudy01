@@ -108,14 +108,16 @@ for (i in 1:25) {
   RainDatFormat <- format_TimeSeries(RainDat)
   
   rep = 100 #set number of replicates
- 
+  
+  seed<-sample(1:100,100)
   simRainRep <-
     getSimRain(RainDatFormat,
                rep = rep,
                mod = "gama",
                option = "MoM",
                threshold = 0,
-               indRainDate = indRainDate)
+               indRainDate = indRainDate,
+               seed = seed)
 
   ##Get SimRain Rep
   SimRainList <- makeRainList(simRainRep = simRainRep[[1]], indRainDate = indRainDate)

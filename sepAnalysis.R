@@ -2,7 +2,7 @@
 optimParamWGEN <- paramWGEN
   
 for (k in 1:5){
-  for (i in 4:9){
+  for (i in c(2,seq(4,10))){
     ##Set GR4J model parameter
     inputGR4J_SepMonth <-
       makeInputGR4J(
@@ -42,13 +42,13 @@ for (k in 1:5){
     upperTheta[1:2] = 1; upperTheta[3:4] = Inf
     
     #Run SCE optim
-    optResult <- hydromad::SCEoptim(FUN = SSE_WeightedFDC_SingleMonthRE,
+    optResult <- hydromad::SCEoptim(FUN = NSE_WeightedFDC_SingleMonthRE,
                                     par = iniTheta,
                                     obsRain = RainDat[indRainDate$i.mm[[i]],2],
                                     paramGR4J = paramGR4J_SepMonth[[1]],
                                     inputGR4J = paramGR4J_SepMonth[[3]],
                                     runOptionGR4J = paramGR4J_SepMonth[[4]],
-                                    virObsFDC = virObsFDCSM,
+                                    virObsFlow = virObsFlowSM,
                                     lower = lowerTheta,
                                     upper = upperTheta)
     
@@ -118,6 +118,7 @@ plotFlowDurationCurve(simFlowRep = simFlowRep_Opt[[1]],
 plotFlowDurationCurve(simFlowRep = simFlowRep,
                       virObsFlow = virObsFlow,
                       option = "withCILimit")
+
 outlet <-
   paste(
     " Flow Duration Curve",
@@ -155,7 +156,7 @@ compareAnnualMaxima(indObsDate = indFlowDate,
 
 mtext("Daily annual maxima (Flow)")
 RainDatFormat <- format_TimeSeries(RainDat)
-plotFlowPercentilesV2.0(obs = virObsFlow, sim = simFlowRep, indFlowDate = indFlowDate, optimSim = simFlowRep_Opt[[1]], mod="2")
+plotFlowPercentilesV2.0(obs = virObsFlow, sim = simFlowRep, indFlowDate = indFlowDate, optimSim = simFlowRep_Opt[[1]], mod="2", percentile = c(0.05, 0.5, 0.95))
 wetday_monthlystats_plot(RainDatFormat, simFlowRep_Opt[[2]], type = "boxplot")
 monthlytotal_stats_plot(RainDatFormat, simFlowRep_Opt[[2]], type = "boxplot")
 compareMean3dayTotal(obs = RainDat$Value, sim = simFlowRep_Opt[[3]], indObsDate = indRainDate)

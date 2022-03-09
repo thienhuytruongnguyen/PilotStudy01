@@ -343,7 +343,7 @@ WGEN_V4.0 <- function(occurParam,
     #Loop for each replicate
     for (j in 1:rep){
       #Create the occurence binary series
-      set.seed(seed[j])
+      #set.seed(seed[j])
       U_t <- runif(length(indRainDate$i.mm[[i]]),0,1)
       bin <- MCmodel_C(length(U_t), occurParam[i,1], occurParam[i,2], U_t)
       #make rain ts from gamma distribution
@@ -475,6 +475,17 @@ percentile90 <- function(x){
   perc <- quantile(x,prob=0.9)
   return(perc)
 }
+
+percentile015 <- function(x){
+  perc <- quantile(x,prob=0.0015)
+  return(perc)
+}
+
+percentile9985 <- function(x){
+  perc <- quantile(x,prob=0.9985)
+  return(perc)
+}
+
 ##----------------------------------------##
 ##90 Confidence interval
 CI90 <- function(x){
@@ -1363,30 +1374,83 @@ SSE_WeightedFDC_SingleMonthRE <-
     simFDC <- getExceedProb_V2.0(simFlowRep)
     
     #Calculate the Sum of square Error
-    err1 <- (simFDC$flow[which(simFDC$Prob<0.05)] - virObsFDC$flow[which(virObsFDC$Prob<0.05)])/virObsFDC$flow[which(virObsFDC$Prob<0.05)]
-    err2 <- (simFDC$flow[which(simFDC$Prob>0.05&simFDC$Prob<=0.8)] - virObsFDC$flow[which(virObsFDC$Prob>0.05&virObsFDC$Prob<=0.8)])/virObsFDC$flow[which(virObsFDC$Prob>0.05&virObsFDC$Prob<=0.8)]
-    err3 <- (simFDC$flow[which(simFDC$Prob>0.8)] - virObsFDC$flow[which(virObsFDC$Prob>0.8)])/virObsFDC$flow[which(virObsFDC$Prob>0.8)]
+    err1 <- abs((simFDC$flow[which(simFDC$Prob<=0.2)] - virObsFDC$flow[which(virObsFDC$Prob<=0.2)])/virObsFDC$flow[which(virObsFDC$Prob<=0.2)])
     
+    err2 <- abs((simFDC$flow[which(simFDC$Prob>=0.8)] - virObsFDC$flow[which(virObsFDC$Prob>=0.8)])/virObsFDC$flow[which(virObsFDC$Prob>=0.8)])
+    
+    #simRainExcProb <- getExceedProb_V2.0(simRainRep)
+    #obsRainExcProb <- getExceedProb_V2.0(obsRain)
+    #errRain <- simRainExcProb$flow - obsRainExcProb$flow
     #Applying weights
-    SSE1 <- sum(err1^2)
-    SSE2 <- sum(err2^2)
-    SSE3 <- sum(err3^2)
+    RSE1 <- sum(err1)
+    RSE2 <- sum(err2)
+
     
-    if (SSE1>SSE2 & SSE1>SSE3){
+    
+    if (RSE1 > RSE2){
       
-      SSE <- 0.8*(sum(err1^2)) + 0.1*sum(err2^2) + 0.1*(sum(err3^2))
+      RSE <- 0.99*RSE1 #+ 0.01*sum(errRain^2)
       
-    } else if (SSE3>SSE2 & SSE3>SSE1){
+    } else{
       
-      SSE <- 0.1*(sum(err1^2)) + 0.1*sum(err2^2) + 0.8*(sum(err3^2))
-      
-    } else if (SSE2>SSE3 & SSE2>SSE1){
-      
-      SSE <- 0.1*(sum(err1^2)) + 0.8*sum(err2^2) + 0.1*(sum(err3^2))
+      RSE <- 0.99*RSE2 #+ 0.01*sum(errRain^2)
       
     }
     
-    return(SSE)
+    return(RSE)
+  }
+##---------------------------------------##
+NSE_WeightedFDC_SingleMonthRE <-
+  ##Calculate the SSE between simFlow and VirObs Flow of 1 single month
+  function(theta, #parameter to optimise
+           obsRain, #Observed Rainfall for 1 single month
+           paramGR4J, #Parameter of the GR4J
+           inputGR4J, #Input of the GR4J: Evapo-transpiration
+           runOptionGR4J, #
+           virObsFlow){ #Virtual observed flow duration curve of 1 single month
+    
+    #Passing element in theta to WGEN parameter
+    occurParam <- vector(length = 2)
+    occurParam[1] <- theta[1]; occurParam[2] <- theta[2]
+    
+    amountParam <- vector(length = 2)
+    amountParam[1] <- theta[3]; amountParam[2] <- theta[4]
+    
+    #declare simrain 
+    simRainRep <- vector(length = length(obsRain))
+    #Create the occurence binary series
+    set.seed(68)
+    U_t <- runif(length(obsRain),0,1)
+    bin <- MCmodel_C(length(U_t), occurParam[1], occurParam[2], U_t)
+    #make rain ts from gamma distribution
+    randRain <- rgamma(length(bin[bin==1]), amountParam[1], amountParam[2])
+    #attach rainfall amount to rain day  
+    bin[bin==1] <- randRain
+    #matching
+    simRainRep <- bin
+    
+    #Generate sim flow with sim rain
+    #add simRain to paramGR4J options
+    inputGR4J[[2]] <- simRainRep
+    #RunGR4J model with updated sim rain
+    outputGR4J <- airGR::RunModel_GR4J(InputsModel = inputGR4J, RunOptions = runOptionGR4J, Param = paramGR4J)
+    #Get sim flow from output GR4J
+    simFlowRep <- outputGR4J$Qsim
+    
+    #Calculate Exceedance Probability for sim flow
+    
+    
+    #Calculate the Sum of square Error
+    err1 <- (virObsFlow - simFlowRep)
+    err2 <- (virObsFlow - mean(virObsFlow))
+    
+    simRainExcProb <- getExceedProb_V2.0(simRainRep)
+    obsRainExcProb <- getExceedProb_V2.0(obsRain)
+    errRain <- simRainExcProb$flow - obsRainExcProb$flow
+    #Applying weights
+    NSE <- 0.99*(sum(err1^2)/sum(err2^2)) + 0.01*sum(errRain^2)
+    
+    return(NSE)
   }
 ##---------------------------------------##
 getSimFlowRep_Opt <- function(theta,

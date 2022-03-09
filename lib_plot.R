@@ -890,10 +890,10 @@ plotFlowPercentiles <- function(obs, sim, indFlowDate){
   }
 }
 
-plotFlowPercentilesV2.0 <- function(obs, sim, indFlowDate, optimSim, mod = "1"){
+plotFlowPercentilesV2.0 <- function(obs, sim, indFlowDate, optimSim, mod = "1",percentile){
   
-  obsPerc <- getObsPercentile(obs, indFlowDate)
-  simPerc <- getSimPercentile(sim, indFlowDate)
+  obsPerc <- getObsPercentile(obs, indFlowDate, percentile)
+  simPerc <- getSimPercentile(sim, indFlowDate, percentile)
   
   if (mod == "1"){
     simTemp <- list()
@@ -938,7 +938,7 @@ plotFlowPercentilesV2.0 <- function(obs, sim, indFlowDate, optimSim, mod = "1"){
     
   }
   if (mod == "2"){
-    optimSimPerc <- getSimPercentile(optimSim, indFlowDate)
+    optimSimPerc <- getSimPercentile(optimSim, indFlowDate, percentile)
     optimSimTemp <- list()
     simTemp <- list()
     #par(mfrow = c(2,2))

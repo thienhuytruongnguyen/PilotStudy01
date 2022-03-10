@@ -1,0 +1,16 @@
+Hydrological calibration procedure:
+1.    Identifying poor performing month
+
+2.    Generating a sequence of simulated rainfall from the SRM with a pre-defined set of parameters.
+
+3.	Generating a sequence of simulated runoff using the rainfall runoff model with the simulated rainfall as input.
+
+4.	Computing pairs of statistics from the simulated runoff and the observed runoff as well as the simulated rainfall and the observed rainfall.
+
+OF = a*SARE1(probs>0.5) + b*SARE2(prob<0.5) + c*SSE_rain
+if SARE1 > SARE2 => a=0.8, b=0.1, c=0.1
+else                a=0.1, b=0.8, c=0.1
+	
+5.	Computing an objective function with the simulated and observed runoff statistics.
+
+6.	Finding the SRM parameters set that optimizes the objective function.

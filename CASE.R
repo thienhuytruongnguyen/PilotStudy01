@@ -36,9 +36,9 @@ CASEFlowMatrixORG <- rbind(CASEPercFlow, CASEMonthlyTotoal)
 write.csv(CASEFlowMatrixORG,file = "resultCASE/flowCASEORG_Site08.csv")
 
 #Get CASE for optim flow
-CASEPercFlow <- getCASEPercFlow(obsFlow = virObsFlow, simFlow = simFlowRep_Opt[[1]], indFlowDate = indFlowDate)
-CASEMonthlyTotoal<-getCASEMonthlyTotalFlow(obs = virObsFlow, sim = simFlowRep_Opt[[1]], indRainDate = indFlowDate)
-CASEFlowMatrixOPT <- rbind(CASEPercFlow, CASEMonthlyTotoal)
+CASEPercFlow2 <- getCASEPercFlow(obsFlow = virObsFlow, simFlow = simFlowRep_Opt[[1]], indFlowDate = indFlowDate)
+CASEMonthlyTotoal2<-getCASEMonthlyTotalFlow(obs = virObsFlow, sim = simFlowRep_Opt[[1]], indRainDate = indFlowDate)
+CASEFlowMatrixOPT <- rbind(CASEPercFlow2, CASEMonthlyTotoal)
 write.csv(CASEFlowMatrixOPT,file = "resultCASE/flowCASEOPT_Site08.csv")
 
 

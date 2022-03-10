@@ -1,8 +1,8 @@
 #------------------Runoff Model----------------------------------
 optimParamWGEN <- paramWGEN
   
-for (k in 1:5){
-  for (i in c(2,seq(4,10))){
+for (k in 1:3){
+  for (i in 4:11){
     ##Set GR4J model parameter
     inputGR4J_SepMonth <-
       makeInputGR4J(
@@ -42,13 +42,13 @@ for (k in 1:5){
     upperTheta[1:2] = 1; upperTheta[3:4] = Inf
     
     #Run SCE optim
-    optResult <- hydromad::SCEoptim(FUN = NSE_WeightedFDC_SingleMonthRE,
+    optResult <- hydromad::SCEoptim(FUN = SSE_WeightedFDC_SingleMonthRE,
                                     par = iniTheta,
                                     obsRain = RainDat[indRainDate$i.mm[[i]],2],
                                     paramGR4J = paramGR4J_SepMonth[[1]],
                                     inputGR4J = paramGR4J_SepMonth[[3]],
                                     runOptionGR4J = paramGR4J_SepMonth[[4]],
-                                    virObsFlow = virObsFlowSM,
+                                    virObsFDC = virObsFDCSM,
                                     lower = lowerTheta,
                                     upper = upperTheta)
     

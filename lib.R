@@ -2028,13 +2028,14 @@ getCASEMonthlyTotal <- function(obs, sim, indRainDate){
       monthlyWetDay[j,i] <- length(which(obs[indRainDate$i.ym[[j]][[i]]]>0))
     }
   }
-  obsMonthlyTotalStats <- matrix(NA,6,12)
+  obsMonthlyTotalStats <- matrix(NA,7,12)
   obsMonthlyTotalStats[1,] <- sapply(obsMonthlyTotal,mean)
   obsMonthlyTotalStats[2,] <- sapply(obsMonthlyTotal,sd)
   obsMonthlyTotalStats[3,] <- sapply(obsMonthlyTotal,percentile5)
   obsMonthlyTotalStats[4,] <- sapply(obsMonthlyTotal,percentile95)
-  obsMonthlyTotalStats[5,] <- sapply(monthlyWetDay,mean)
-  obsMonthlyTotalStats[6,] <- sapply(monthlyWetDay,sd)
+  obsMonthlyTotalStats[5,] <- sapply(obsMonthlyTotal,percentile50)
+  obsMonthlyTotalStats[6,] <- sapply(monthlyWetDay,mean)
+  obsMonthlyTotalStats[7,] <- sapply(monthlyWetDay,sd)
   
   #get monthly wet day stats for sim
   simMonthlyTotal <- list()
@@ -2042,7 +2043,7 @@ getCASEMonthlyTotal <- function(obs, sim, indRainDate){
   simWetDay <- list()
   for (i in 1:12){## Loop for 12 months
     df <- data.frame(matrix(NA,nrow = length(indRainDate$i.ym), ncol = ncol(sim)))
-    df1 <- matrix(NA,6,ncol(sim))#Declare property of the statistics dataframe: 
+    df1 <- matrix(NA,7,ncol(sim))#Declare property of the statistics dataframe: 
     simMonthlyTotal[[i]] <- df #3 rows for 5 stats, rep columns for number of rep
     simWetDay[[i]] <- df
     simMonthlyTotalStats[[i]] <- df1
@@ -2056,14 +2057,15 @@ getCASEMonthlyTotal <- function(obs, sim, indRainDate){
     simMonthlyTotalStats[[i]][2,] <- sapply(simMonthlyTotal[[i]], sd)
     simMonthlyTotalStats[[i]][3,] <- sapply(simMonthlyTotal[[i]], percentile5)
     simMonthlyTotalStats[[i]][4,] <- sapply(simMonthlyTotal[[i]], percentile95)
-    simMonthlyTotalStats[[i]][5,] <- sapply(simWetDay[[i]], mean)
-    simMonthlyTotalStats[[i]][6,] <- sapply(simWetDay[[i]], sd)
+    simMonthlyTotalStats[[i]][5,] <- sapply(simMonthlyTotal[[i]], percentile50)
+    simMonthlyTotalStats[[i]][6,] <- sapply(simWetDay[[i]], mean)
+    simMonthlyTotalStats[[i]][7,] <- sapply(simWetDay[[i]], sd)
   }
   
-  CASEMonthlyTotal <- matrix(NA,6,12)
-  rownames(CASEMonthlyTotal) <- c("Mean", "SD", "5th", "95th","MeanWetDay", "SDWetDay")
+  CASEMonthlyTotal <- matrix(NA,7,12)
+  rownames(CASEMonthlyTotal) <- c("Mean", "SD", "5th", "95th", "50th", "MeanWetDay", "SDWetDay")
   for (i in 1:12){
-    for (j in 1:6){
+    for (j in 1:nrow(CASEMonthlyTotal)){
       lower90 <- quantile(simMonthlyTotalStats[[i]][j,], probs = 0.05)
       upper90 <- quantile(simMonthlyTotalStats[[i]][j,], probs = 0.95)
       lower997 <- quantile(simMonthlyTotalStats[[i]][j,], probs = 0.0015)
@@ -2210,4 +2212,107 @@ getCASEMonthlyTotalFlow <- function(obs, sim, indRainDate){
     }
   }
   return(CASEMonthlyTotal)
+}
+
+mainSimulation <- function(i,s){
+  whichSite <- flowSiteList[i,]##1st row of flow site list
+  
+  ##Get Nearest Weather station to Site
+  siloInfo <-
+    weatherSiteList[which(weatherSiteList$station == catchmentInfo$NearestSilo[i]), ]
+  
+  ##Getting rain and PET data from URL
+  siloData <-
+    getWeatherData(
+      nearestStation = siloInfo$station,
+      start = whichSite$start,
+      finish = whichSite$finish
+    )
+  
+  ##Get flow, rain and evap data
+  RainDat <- siloData[,c(2,3)]; colnames(RainDat) = c("Date_Time","Value")
+  EvapDat <- siloData[,c(2,5)]; colnames(EvapDat) = c("Date_Time","Value")
+  FlowDat <- read.csv(paste(WD,"/Data/Flow/",whichSite$station,".csv",sep = ""))
+  
+  #------------------Runoff Model----------------------------------
+  
+  ##Set GR4J model parameter
+  inputGR4J <-
+    makeInputGR4J(
+      P = RainDat$Value,
+      Q = FlowDat$Value,
+      E = EvapDat$Value,
+      Date = FlowDat$Date_Time,
+      A = whichSite$area
+    )
+  
+  #Set start and end of period
+  start <- FlowDat[1,1] ; end <- FlowDat[length(FlowDat[,1]),1]
+  
+  #months, set warm-up period, airGR prefer more than 12 months
+  warmup <- 24
+  
+  #make parameter list
+  paramGR4J <-
+    getParamGR4J(
+      inputGR4J = inputGR4J,
+      start = start,
+      end = end,
+      warmup = warmup,
+      parameter = "known",
+      knownParam = catchmentInfo[i, c(9, 10, 11, 12)]
+    )
+  
+  ##Run GR4J model
+  outputGR4J <- runGR4J(paramGR4J)
+  effiReport <-
+    getEffiReport(
+      outputGR4J = outputGR4J,
+      inputGR4J = inputGR4J,
+      start = start,
+      end = end,
+      warmup = warmup
+    )
+  
+  
+  #------------------Rainfall Model----------------------------------
+  
+  ##Fit the WGEN model and Generate some rainfall replicates
+  indRainDate <- makeObsDates(RainDat[,1]) #get index rain day
+  RainDatFormat <- format_TimeSeries(RainDat)
+  
+  rep = 100 #set number of replicates
+  
+  seed<-sample(1:100,100)
+  simRainRep <-
+    getSimRain(RainDatFormat,
+               rep = rep,
+               mod = "gama",
+               option = "MoM",
+               threshold = 0,
+               indRainDate = indRainDate,
+               seed = seed)
+  
+  ##Get SimRain Rep
+  SimRainList <- makeRainList(simRainRep = simRainRep[[1]], indRainDate = indRainDate)
+  
+  ##Write rainfall model parameters for the site
+  paramWGEN <- data.frame(matrix(NA, ncol = 4, nrow = 12))
+  colnames(paramWGEN) <- c("PDW","PWW","a","b")
+  
+  #Markov Chain Model parameter
+  paramWGEN[1:2] <- simRainRep[[2]][1:2]
+  
+  #Gama distribution parameter
+  paramWGEN[3:4] <- simRainRep[[3]]
+  
+  simFlowRep <-
+    getSimFlowRep(simRainRep = simRainRep[[1]], paramGR4J = paramGR4J)
+  
+  #Make flow date index
+  indFlowDate <- makeObsDates(RainDat$Date_Time[paramGR4J[[2]]])
+  #Get virtual observed flow
+  virObsFlow <- outputGR4J$Qsim
+  
+  return(list(RainDat[,2], simRainRep[[1]], virObsFlow, simFlowRep, indRainDate, indFlowDate))
 }

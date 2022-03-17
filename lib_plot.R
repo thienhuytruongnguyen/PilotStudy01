@@ -126,7 +126,8 @@ monthlytotal_stats_plot<-function
       ##Box plot function with modifiable whisker range 
       boxplot.ext(pred.stats[[i]],
                   ylim=c(min.range,max.range),
-                  whiskersProb = c(0.05,0.95))
+                  whiskersProb = c(0.05,0.95),
+                  outline = FALSE)
       ##Point the observed data on the plot
       points(t(obs.month.total.stats[i,]),col="red",pch=3)
       title(main = title.plot1[i])
@@ -224,7 +225,8 @@ wetday_monthlystats_plot <- function
       ##Box plot function with modifiable whisker range 
       boxplot.ext(pred.stats[[i]],
                   
-                  whiskersProb = c(0.05,0.95))
+                  whiskersProb = c(0.05,0.95),
+                  outline = FALSE)
       ##Point the observed data on the plot
       points(t(obs.monthwetday.stats[i,]),col="red",pch=3)
       title(main = title_plot_2[i])
@@ -513,22 +515,22 @@ compareAnnualMaxima <- function(indObsDate,
   #Start plot
   
   #Get range
-  if (min(lowerExceedProb) < min(annualRetInt_obsAnnualMaxima)){
-    minRange <- min(lowerExceedProb)
-  } else {minRange <- min(annualRetInt_obsAnnualMaxima)}
+  if (min(lowerExceedProb[,2]) < min(annualRetInt_obsAnnualMaxima[,2])){
+    minRange <- min(lowerExceedProb[,2])
+  } else {minRange <- min(annualRetInt_obsAnnualMaxima[,2])}
   
-  if (max(upperExceedProb) > max(annualRetInt_obsAnnualMaxima)){
-    maxRange <- max(upperExceedProb)
-  } else {maxRange <- max(annualRetInt_obsAnnualMaxima)}
+  if (max(upperExceedProb[,2]) > max(annualRetInt_obsAnnualMaxima[,2])){
+    maxRange <- max(upperExceedProb[,2])
+  } else {maxRange <- max(annualRetInt_obsAnnualMaxima[,2])}
   
   plot(annualRetInt_obsAnnualMaxima, log="x",pch=4, lwd = 1, ann = FALSE, xaxt ="n", yaxt ="n", ylim = c(minRange, maxRange))
   title(ylab = "Depth (mm)", xlab = "Annual Return Period", line = 2.5)
   
-  xticks = c(seq(1,2,0.2),5, 10, 20)
-  yticks = seq(0,format(round(max(annualRetInt_obsAnnualMaxima),-1)),20)
+  xticks = c(seq(1,2,0.2),5, 10, 20, 40)
+  yticks = seq(0,20,5)
   axis(side = 1, at = xticks)
   axis(side = 2, at = yticks)
-  abline(h = seq(0, 200, 20), v = xticks, col = "lightgray", lty = 3)
+  abline(h = yticks, v = xticks, col = "lightgray", lty = 3)
   
   legend("topleft", legend = c("Obs","Sim. 90% PL", "Sim. Median"),
          col = c("black","red","red"), pch = c(4,NA,1), lty = c(0,3,0), lwd = 1.6, cex = 0.8)
@@ -573,7 +575,8 @@ compareDrySpell <- function(monthlyObsRain,
   boxplot.ext(
     simDrySpell,
     ylim = c(minRange, maxRange),
-    whiskersProb = c(0.05, 0.95)
+    whiskersProb = c(0.05, 0.95),
+    outline = FALSE
   )
   title(ylab = "Proportion of Dry Events", xlab = "Dry Spell (Days)")
   
@@ -613,7 +616,8 @@ compareWetSpell <- function(monthlyObsRain,
   boxplot.ext(
     simWetSpell,
     ylim = c(minRange, maxRange),
-    whiskersProb = c(0.05, 0.95)
+    whiskersProb = c(0.05, 0.95),
+    outline = FALSE
   )
   title(ylab = "Proportion of Wet Events", xlab = "Wet Spell (Days)")
   
@@ -665,7 +669,8 @@ compareMean3dayTotal <- function(obs,
   boxplot.ext(
     simMean3dayTotal,
     ylim = c(minRange, maxRange),
-    whiskersProb = c(0.05, 0.95)
+    whiskersProb = c(0.05, 0.95),
+    outline = FALSE
   )
   title(main = "Mean monthly 3-day total (mm)")
   points(obsMean3dayTotal , col = "red", pch = 3)
@@ -716,7 +721,8 @@ compareMean5dayTotal <- function(obs,
   boxplot.ext(
     simMean5dayTotal,
     ylim = c(minRange, maxRange),
-    whiskersProb = c(0.05, 0.95)
+    whiskersProb = c(0.05, 0.95),
+    outline = FALSE
   )
   title(main = "Mean monthly 5-day total (mm)")
   points(obsMean5dayTotal , col = "red", pch = 3)
@@ -861,19 +867,19 @@ plotFlowPercentiles <- function(obs, sim, indFlowDate, percentile){
   
   obsPerc <- getObsPercentile(obs, indFlowDate, perc = percentile)
   simPerc <- getSimPercentile(sim, indFlowDate, perc = percentile)
-  perc <- c(0.05, 0.5, 0.95)
-  percName <- c("5th", "50th", "95th")
+  perc <- percentile
+  percName <- c("5th","95th")
   simPercStore <- list()
   
   for (i in 1:length(perc)){
-    df <- matrix(NA,rep,12)##Each stats is a dataframe that has rep rows and 12 columns corresponding for 12 months
+    df <- matrix(NA,ncol(sim),12)##Each stats is a dataframe that has rep rows and 12 columns corresponding for 12 months
     simPercStore[[i]] <- df
     colnames(simPercStore[[i]]) <- c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
     for (j in 1:12){##Loops for each month
       simPercStore[[i]][,j] <- (simPerc[[j]][i,])##Collect the stats values of each month
     }
     
-    title <- paste(percName[i], "percentile of flow (mm)", sep = " ")
+    title <- paste(percName[i], "percentile of runoff (mm)", sep = " ")
     
     if (min(simPercStore[[i]])<min(obsPerc[i,])){
       min.range = min(simPercStore[[i]])
@@ -884,9 +890,12 @@ plotFlowPercentiles <- function(obs, sim, indFlowDate, percentile){
     
     boxplot.ext(simPercStore[[i]],
                 ylim=c(min.range,max.range),
-                whiskersProb = c(0.05,0.95))
+                whiskersProb = c(0.005,0.995),
+                outline = FALSE)
     points((obsPerc[i,]),col="red",pch=3)
     title(main = title)
+    legend("topright", fill = c("white",0), border=c("black",NA),
+           legend = c("sim", "obs"), pch = c(NA,3), col=c(NA,"red"), box.lty = 0, inset = 0.02)
   }
 }
 
@@ -899,7 +908,7 @@ plotFlowPercentilesV2.0 <- function(obs, sim, indFlowDate, optimSim, mod = "1",p
     simTemp <- list()
     #par(mfrow = c(2,4))
     percName <- c("5th", "50th", "95th")
-    perc <- c(0.05, 0.5, 0.95)
+    perc <- percentile
     for (i in 1:length(perc)){
       df <- matrix(NA,12,100)##Each stats is a dataframe that has rep rows and 12 columns corresponding for 12 months
       simTemp[[i]] <- df
@@ -942,8 +951,8 @@ plotFlowPercentilesV2.0 <- function(obs, sim, indFlowDate, optimSim, mod = "1",p
     optimSimTemp <- list()
     simTemp <- list()
     #par(mfrow = c(2,2))
-    percName <- c("5th", "50th", "95th")
-    perc <- c(0.05, 0.5, 0.95)
+    percName <- c("5th", "50th","95th")
+    perc <- percentile
     for (i in 1:length(perc)){
       df <- matrix(NA,12,100)##Each stats is a dataframe that has rep rows and 12 columns corresponding for 12 months
       optimSimTemp[[i]] <- df
@@ -978,7 +987,7 @@ plotFlowPercentilesV2.0 <- function(obs, sim, indFlowDate, optimSim, mod = "1",p
       } else {max.range = max(simTemp[[i]])}
       
       
-      plot(obsPerc[i,], type = "b", col = "black", ylim=c(min.range,max.range), xlab="", ylab="", xaxt = "n", lwd = 3)
+      plot(obsPerc[i,], type = "b", col = "black", ylim=c(min.range,max.range), xlab="", ylab="", xaxt = "n", lwd = 2.5)
       polygon(xpoly1, ypoly1, col = rgb(red = 1, green = 0.1, blue = 0.1, alpha = 0.3), border = NA)
       polygon(xpoly2, ypoly2, col = rgb(red = 0.11, green = 0.9, blue = 0.1, alpha = 0.4), border = NA)
       lines(lower1, lty = 1, col = "red", lwd = 1.6)
@@ -986,11 +995,98 @@ plotFlowPercentilesV2.0 <- function(obs, sim, indFlowDate, optimSim, mod = "1",p
       lines(median1, lty = 5, col = "brown", lwd = 1.6)
       lines(lower2, lty = 1, col = "darkgreen", lwd = 1.6)
       lines(upper2, lty = 1, col = "darkgreen", lwd = 1.6)
-      lines(median2, lty = 5, col = "green2", lwd = 1.6)
+      lines(median2, lty = 5, col = "darkgreen", lwd = 1.6)
       title(ylab = title)
       axis(1, at = 1:12, labels = c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"))
-      legend("topright", legend = c("VirObs Flow","Sim. 99.7% PL", "Optim. Sim. 99.7% PL", "Sim. Median", "Optim. Sim. Median"),
-             col = c("black","red","darkgreen","brown","green2"),pch = c(1,NA,NA,NA,NA), lty = c(NA,1,1,2,2), lwd = 1.6, cex = 0.8)
+      legend("topright", legend = c("Vir.Obs.","Sim. 99.7% PL", "Optim. Sim. 99.7% PL", "Sim. Median", "Optim. Sim. Median"),
+             col = c("black","red","darkgreen","brown","darkgreen"),pch = c(1,NA,NA,NA,NA),fill = c(NA,"red","green",NA,NA), border = c(NA,"red","darkgreen",NA,NA), lty = c(NA,NA,NA,2,2), lwd = 1.6, cex = 0.8, inset = 0.02, box.lty = 0, pt.cex = c(1,NA,NA,NA,NA))
     }
   }
 }
+
+plotFlowDurationCurveV2.0 <- function (simFlowRep,simFlowRepOpt, 
+                                   virObsFlow 
+                                   ){
+  
+ #Get exceedance probability for virtual observed flow
+      virObsExceedProb <- getExceedProb(flow = virObsFlow)
+      #virObsExceedProb <- virObsExceedProb[which(virObsExceedProb$Prob<=0.5),]
+      #Rank simulated flow
+      simExceedProbRep <- getExceedProbRep(simFlowRep = simFlowRep,threshold = 1)#Rank First time
+      #simExceedProbRep <- simExceedProbRep[which(simExceedProbRep$Prob>=0.5)]
+      #Rank simulated flow Optim
+      simExceedProbRepOpt <- getExceedProbRep(simFlowRep = simFlowRepOpt, threshold = 1)#Rank First time
+      #simExceedProbRepOpt <- simExceedProbRepOpt[which(simExceedProbRepOpt$Prob>=0.5)]
+      
+      
+      #Extract 1st ranked to a dataframe
+      firstRank1 <- data.frame(matrix(NA,nrow = length(simExceedProbRep[[1]]$Flow),ncol = ncol(simFlowRep)))
+      for (i in 1:ncol(firstRank1)){
+        firstRank1[,i] <- simExceedProbRep[[i]]$Flow
+      }
+      #Extract 1st ranked to a dataframe
+      firstRank2 <- data.frame(matrix(NA,nrow = length(simExceedProbRepOpt[[1]]$Flow),ncol = ncol(simFlowRep)))
+      for (i in 1:ncol(firstRank2)){
+        firstRank2[,i] <- simExceedProbRepOpt[[i]]$Flow
+      }
+      
+      #get probability limit and median 90%
+      probLimLower1 <- apply(firstRank1,1,percentile015)
+      probLimUpper1 <- apply(firstRank1,1,percentile9985)
+      probLimMedian1 <- apply(firstRank1,1,percentile50)
+      #get probability limit and median 90%
+      probLimLower2 <- apply(firstRank2,1,percentile015)
+      probLimUpper2 <- apply(firstRank2,1,percentile9985)
+      probLimMedian2 <- apply(firstRank2,1,percentile50)
+      
+      #get Exceedance probability for CI limits and median
+      lowerExceedProb1 <- getExceedProb(flow = probLimLower1)
+      upperExceedProb1 <- getExceedProb(flow = probLimUpper1)
+      medianExceedProb1 <- getExceedProb(flow = probLimMedian1)
+      #get Exceedance probability for CI limits and median
+      lowerExceedProb2 <- getExceedProb(flow = probLimLower2)
+      upperExceedProb2 <- getExceedProb(flow = probLimUpper2)
+      medianExceedProb2 <- getExceedProb(flow = probLimMedian2)
+      #Plot parameters
+      ylab <- "Runoff (mm)"
+      xlab <- "Exceedance Probability"
+      #Plot Range
+      if (min(lowerExceedProb1$Flow) < min(virObsExceedProb$Flow)){
+        ylower <- min(lowerExceedProb1$Flow)
+      } else {ylower <- min(virObsExceedProb$Flow)}
+      
+      if (max(upperExceedProb1$Flow) > max(virObsExceedProb$Flow)){
+        yupper <- max(upperExceedProb1$Flow)
+      } else {yupper <- max(virObsExceedProb$Flow)}
+      
+      ylim <- c(ylower,0.5)
+      
+      #Start plot
+      plot(virObsExceedProb,type="p",log='y',ylim = ylim, lwd = 1.5, ann = FALSE, xlim = c(0.999,0.5))
+      title(ylab = ylab, xlab = xlab, line = 2.5)
+      #legend("topright", legend = c("VirObs Flow","Sim. 90% PL", "Sim. Median", "in Log Scale"),
+      #col = c("black","red","darkblue"), lty = c(1,2,3,0), lwd = 1, cex = 0.8)
+      #plot CI region
+      xpoly1 = c(rev(lowerExceedProb1$Exceedance_Probability), upperExceedProb1$Exceedance_Probability)
+      ypoly1 = c(rev(upperExceedProb1$Flow), lowerExceedProb1$Flow)
+      polygon(xpoly1, ypoly1, col = rgb(red = 1, green = 0.1, blue = 0.1, alpha = 0.3), border = NA)
+      
+      xpoly2 = c(rev(lowerExceedProb2$Exceedance_Probability), upperExceedProb2$Exceedance_Probability)
+      ypoly2 = c(rev(upperExceedProb2$Flow), lowerExceedProb2$Flow)
+      polygon(xpoly2, ypoly2, col = rgb(red = 0.1, green = 0.95, blue = 0.1, alpha = 0.4), border = NA)
+      #Line CI boundary and median
+      lines(lowerExceedProb1, col="red",lwd=1.5, lty=5)                    
+      lines(upperExceedProb1, col="red",lwd=1.5, lty=5)
+      lines(medianExceedProb1, col="brown",lwd=2, lty=2)
+      #Line CI boundary and median
+      lines(lowerExceedProb2, col="darkgreen",lwd=1.5, lty=5)                    
+      lines(upperExceedProb2, col="darkgreen",lwd=1.5, lty=5)
+      lines(medianExceedProb2, col="darkgreen",lwd=2, lty=2)
+      
+      yticks = c(0.01,0.02,0.05,0.1,0.2,0.5)
+      xticks = seq(0.5,1,0.1)
+
+      abline(h = yticks, v = xticks, col = "lightgray", lty = 3)
+      legend("topright", legend = c("Vir.Obs.","Sim. 99.7% PL", "Optim. Sim. 99.7% PL", "Sim. Median", "Optim. Sim. Median"),
+             col = c("black","red","darkgreen","brown","darkgreen"),pch = c(1,NA,NA,NA,NA),fill = c(NA,"red","green",NA,NA), border = c(NA,"red","darkgreen",NA,NA), lty = c(NA,NA,NA,2,2), lwd = 2, cex = 0.8, inset = 0.02, box.lty = 0, pt.cex = c(1,NA,NA,NA,NA))
+    }

@@ -861,12 +861,12 @@ plotFlowPercentiles <- function(obs, sim, indFlowDate, percentile){
   
   obsPerc <- getObsPercentile(obs, indFlowDate, perc = percentile)
   simPerc <- getSimPercentile(sim, indFlowDate, perc = percentile)
-  perc <- c(0.05, 0.5, 0.95)
-  percName <- c("5th", "50th", "95th")
+  perc <- percentile
+  percName <- c("5th","95th")
   simPercStore <- list()
   
   for (i in 1:length(perc)){
-    df <- matrix(NA,rep,12)##Each stats is a dataframe that has rep rows and 12 columns corresponding for 12 months
+    df <- matrix(NA,ncol(sim),12)##Each stats is a dataframe that has rep rows and 12 columns corresponding for 12 months
     simPercStore[[i]] <- df
     colnames(simPercStore[[i]]) <- c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
     for (j in 1:12){##Loops for each month

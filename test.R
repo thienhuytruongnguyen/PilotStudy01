@@ -24,9 +24,9 @@ plotFlowDurationCurve(simFlowRep = simFlowRep_Opt[[1]],
                       virObsFlow = virObsFlow,
                       option = "withCILimit")
 plotFlowPercentilesV2.0(obs = virObsFlow, sim = simFlowRep, indFlowDate = indFlowDate, optimSim = simFlowRep_Opt[[1]], mod="2", percentile = c(0.05, 0.5, 0.95))
-plotFlowPercentiles(obs = virObsFlow, sim = simFlowRep, indFlowDate = indFlowDate, percentile = c(0.05, 0.5, 0.95))
+plotFlowPercentiles(obs = virObsFlow, sim = simFlowRep, indFlowDate = indFlowDate, percentile = c(0.05, 0.95))
 
-par(mfrow=c(1,1))
+par(mfrow=c(1,2))
 plotFlowDurationCurve(simFlowRep = simFlowRep_Opt[[1]],
                       virObsFlow = virObsFlow,
                       option = "withCILimit")

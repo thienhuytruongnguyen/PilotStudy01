@@ -353,6 +353,18 @@ WGEN_V4.0 <- function(occurParam,
       #matching
       simRainRep[indRainDate$i.mm[[i]],j] <- bin
     }
+    for (j in 1:30){
+      #Create the occurence binary series
+      set.seed(seed[j])
+      U_t <- runif(length(indRainDate$i.mm[[i]]),0,1)
+      bin <- MCmodel_C(length(U_t), occurParam[i,1], occurParam[i,2], U_t)
+      #make rain ts from gamma distribution
+      randRain <- rgamma(length(bin[bin==1]), amountParam[i,1], amountParam[i,2])
+
+      bin[bin==1] <- randRain
+      #matching
+      simRainRep[indRainDate$i.mm[[i]],j] <- bin
+    }
   }
   return(simRainRep)
 }
@@ -783,12 +795,13 @@ getSimFlowRep <- function(simRainRep,paramGR4J){
 ##---------------------------------------##
 ##Get exceedance probability for sim flow replicates
 
-getExceedProbRep <- function(simFlowRep){
+getExceedProbRep <- function(simFlowRep,threshold=1){
   
   repExceedProb <- list()
   
   for (i in 1:ncol(simFlowRep)){
-    repExceedProb[[i]] <- getExceedProb(simFlowRep[,i])
+    temp <- getExceedProb(simFlowRep[,i])
+    repExceedProb[[i]] <- temp[which(temp$Exceedance_Probability<=threshold),]
   }
   
   return(repExceedProb)
@@ -1387,11 +1400,11 @@ SSE_WeightedFDC_SingleMonthRE <-
     
     if (RSE1 > RSE2){
       
-      RSE <- 0.8*sum(err1) + 0.1*sum(err2) + 0.1*sum(errRain^2)
+      RSE <- 0.8*sum(err1) + 0.1*sum(err2) + 0.01*sum(errRain^2)
       
     } else{
       
-      RSE <- 0.8*sum(err2) + 0.1*sum(err1) + 0.1*sum(errRain^2)
+      RSE <- 0.8*sum(err2) + 0.1*sum(err1) + 0.01*sum(errRain^2)
       
     }
     
@@ -2004,13 +2017,13 @@ getCASEWetDayMonthly <- function(obs, sim, indDate){
       upper90 <- quantile(monthstats.list[[i]][j,], probs = 0.95)
       lower997 <- quantile(monthstats.list[[i]][j,], probs = 0.0015)
       upper997 <- quantile(monthstats.list[[i]][j,],probs = 0.9985)
-      absRelDiff <- abs((mean(monthstats.list[[i]][j,])-obsMonthlyWetDayStats[j,i])/obsMonthlyWetDayStats[j,i])*100
-      if (obsMonthlyWetDayStats[j,i] > lower90 & obsMonthlyWetDayStats[j,i] < upper90){
+      #absRelDiff <- abs((mean(monthstats.list[[i]][j,])-obsMonthlyWetDayStats[j,i])/obsMonthlyWetDayStats[j,i])*100
+      if (obsMonthlyWetDayStats[j,i] >= lower90 & obsMonthlyWetDayStats[j,i] <= upper90){
         CASEMonthlyWetDay[j,i] <- "Good"
-      }else if (obsMonthlyWetDayStats[j,i] > lower997 & obsMonthlyWetDayStats[j,i] < upper997){
+      }else if (obsMonthlyWetDayStats[j,i] >= lower997 & obsMonthlyWetDayStats[j,i] <= upper997){
         CASEMonthlyWetDay[j,i] <- "Fair"
-      }else if (absRelDiff <= 5){
-        CASEMonthlyWetDay[j,i] <- "Fair"
+      #else if (absRelDiff <= 5){
+        #CASEMonthlyWetDay[j,i] <- "Fair"}
       }else{CASEMonthlyWetDay[j,i] <- "Poor"}
     }
   }
@@ -2070,13 +2083,13 @@ getCASEMonthlyTotal <- function(obs, sim, indRainDate){
       upper90 <- quantile(simMonthlyTotalStats[[i]][j,], probs = 0.95)
       lower997 <- quantile(simMonthlyTotalStats[[i]][j,], probs = 0.0015)
       upper997 <- quantile(simMonthlyTotalStats[[i]][j,],probs = 0.9985)
-      absRelDiff <- abs((mean(simMonthlyTotalStats[[i]][j,])-obsMonthlyTotalStats[j,i])/obsMonthlyTotalStats[j,i])*100
-      if (obsMonthlyTotalStats[j,i] > lower90 & obsMonthlyTotalStats[j,i] < upper90){
+      #absRelDiff <- abs((mean(simMonthlyTotalStats[[i]][j,])-obsMonthlyTotalStats[j,i])/obsMonthlyTotalStats[j,i])*100
+      if (obsMonthlyTotalStats[j,i] >= lower90 & obsMonthlyTotalStats[j,i] <= upper90){
         CASEMonthlyTotal[j,i] <- "Good"
-      }else if (obsMonthlyTotalStats[j,i] > lower997 & obsMonthlyTotalStats[j,i] < upper997){
+      }else if (obsMonthlyTotalStats[j,i] >= lower997 & obsMonthlyTotalStats[j,i] <= upper997){
         CASEMonthlyTotal[j,i] <- "Fair"
-      }else if (absRelDiff <= 5){
-        CASEMonthlyTotal[j,i] <- "Fair"
+      #else if (absRelDiff <= 5){
+        #CASEMonthlyTotal[j,i] <- "Fair"}
       }else{CASEMonthlyTotal[j,i] <- "Poor"}
     }
   }
@@ -2104,13 +2117,13 @@ getCASEMeanDayTotal <- function(obs,sim,indRainDate){
     upper90 <- quantile(sim3Day[,i], probs = 0.95)
     lower997 <- quantile(sim3Day[,i], probs = 0.0015)
     upper997 <- quantile(sim3Day[,i], probs = 0.9985)
-    absRelDiff <- abs((mean(sim3Day[,i])-obs3Day[i])/obs3Day[i])*100
-    if (obs3Day[i] > lower90 & obs3Day[i] < upper90){
+    #absRelDiff <- abs((mean(sim3Day[,i])-obs3Day[i])/obs3Day[i])*100
+    if (obs3Day[i] >= lower90 & obs3Day[i] <= upper90){
       CASEDayTotal[1,i] <- "Good"
-    }else if (obs3Day[i] > lower997 & obs3Day[i] < upper997){
+    }else if (obs3Day[i] >= lower997 & obs3Day[i] <= upper997){
       CASEDayTotal[1,i] <- "Fair"
-    }else if (absRelDiff <= 5){
-      CASEDayTotal[1,i] <- "Fair"
+    #else if (absRelDiff <= 5){
+      #CASEDayTotal[1,i] <- "Fair"}
     }else{CASEDayTotal[1,i] <- "Poor"}
   }
   for (i in 1:12){
@@ -2118,13 +2131,13 @@ getCASEMeanDayTotal <- function(obs,sim,indRainDate){
     upper90 <- quantile(sim5Day[,i], probs = 0.95)
     lower997 <- quantile(sim5Day[,i], probs = 0.0015)
     upper997 <- quantile(sim5Day[,i], probs = 0.9985)
-    absRelDiff <- abs((mean(sim5Day[,i])-obs5Day[i])/obs5Day[i])*100
+    #absRelDiff <- abs((mean(sim5Day[,i])-obs5Day[i])/obs5Day[i])*100
     if (obs5Day[i] > lower90 & obs5Day[i] < upper90){
       CASEDayTotal[2,i] <- "Good"
     }else if (obs5Day[i] > lower997 & obs5Day[i] < upper997){
       CASEDayTotal[2,i] <- "Fair"
-    }else if (absRelDiff <= 5){
-      CASEDayTotal[2,i] <- "Fair"
+    #else if (absRelDiff <= 5){
+      #CASEDayTotal[2,i] <- "Fair"
     }else{CASEDayTotal[2,i] <- "Poor"}
   }
   return(CASEDayTotal) 
@@ -2144,13 +2157,13 @@ getCASEPercFlow <- function(obsFlow, simFlow, indFlowDate){
       upper90 <- quantile(simPerc[[i]][j,], probs = 0.95)
       lower997 <- quantile(simPerc[[i]][j,], probs = 0.0015)
       upper997 <- quantile(simPerc[[i]][j,],probs = 0.9985)
-      absRelDiff <- abs((mean(simPerc[[i]][j,])-obsPerc[j,i])/obsPerc[j,i])*100
-      if (obsPerc[j,i] > lower90 & obsPerc[j,i] < upper90){
+      #absRelDiff <- abs((mean(simPerc[[i]][j,])-obsPerc[j,i])/obsPerc[j,i])*100
+      if (obsPerc[j,i] >= lower90 & obsPerc[j,i] <= upper90){
         CASEPercFlow[j,i] <- "Good"
-      }else if (obsPerc[j,i] > lower997 & obsPerc[j,i] < upper997){
+      }else if (obsPerc[j,i] >= lower997 & obsPerc[j,i] <= upper997){
         CASEPercFlow[j,i] <- "Fair"
-      }else if (absRelDiff <= 5){
-        CASEPercFlow[j,i] <- "Fair"
+      #else if (absRelDiff <= 5){
+       # CASEPercFlow[j,i] <- "Fair"
       }else{CASEPercFlow[j,i] <- "Poor"}
     }
   }
@@ -2201,13 +2214,13 @@ getCASEMonthlyTotalFlow <- function(obs, sim, indRainDate){
       upper90 <- quantile(simMonthlyTotalStats[[i]][j,], probs = 0.95)
       lower997 <- quantile(simMonthlyTotalStats[[i]][j,], probs = 0.0015)
       upper997 <- quantile(simMonthlyTotalStats[[i]][j,],probs = 0.9985)
-      absRelDiff <- abs((mean(simMonthlyTotalStats[[i]][j,])-obsMonthlyTotalStats[j,i])/obsMonthlyTotalStats[j,i])*100
-      if (obsMonthlyTotalStats[j,i] > lower90 & obsMonthlyTotalStats[j,i] < upper90){
+      #absRelDiff <- abs((mean(simMonthlyTotalStats[[i]][j,])-obsMonthlyTotalStats[j,i])/obsMonthlyTotalStats[j,i])*100
+      if (obsMonthlyTotalStats[j,i] >= lower90 & obsMonthlyTotalStats[j,i] <= upper90){
         CASEMonthlyTotal[j,i] <- "Good"
-      }else if (obsMonthlyTotalStats[j,i] > lower997 & obsMonthlyTotalStats[j,i] < upper997){
+      }else if (obsMonthlyTotalStats[j,i] >= lower997 & obsMonthlyTotalStats[j,i] <= upper997){
         CASEMonthlyTotal[j,i] <- "Fair"
-      }else if (absRelDiff <= 5){
-        CASEMonthlyTotal[j,i] <- "Fair"
+      #}else if (absRelDiff <= 5){
+        #CASEMonthlyTotal[j,i] <- "Fair"
       }else{CASEMonthlyTotal[j,i] <- "Poor"}
     }
   }

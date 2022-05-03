@@ -109,7 +109,7 @@ for (i in 1:25) {
   
   rep = 100 #set number of replicates
   
-  seed<-sample(1:100,100)
+  seed<-rep(seq(1,25),4)
   simRainRep <-
     getSimRain(RainDatFormat,
                rep = rep,
@@ -156,7 +156,7 @@ for (i in 1:25) {
   #Get virtual observed flow
   virObsFlow <- outputGR4J$Qsim
   
-  
+  plotFlowPercentiles(obs = virObsFlow, sim = simFlowRep, indFlowDate = indFlowDate, percentile = c(0.05,0.95))
   #Plotting----------------------------------
   plotMaster(WD,
             s,

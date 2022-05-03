@@ -1,0 +1,4 @@
+Check with other rainfall model in study 1
+low flow base flow, high flow sections
+quantile and quantile plots rainfall-runoff trial
+objective function - kernel density - 

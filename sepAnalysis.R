@@ -70,7 +70,7 @@ simFlowRep_Opt <- getSimFlowRep_Opt(theta = thetaTrialSepmonth,
 
 
 simRainRep_Opt <- getSimRainRep(simFlowRep_Opt[[2]])
-
+indFlowDate <- makeObsDates(RainDat[paramGR4J[[2]],1])
 indRainDate <- makeObsDates(RainDat[,1])
 
 pdf(
@@ -153,7 +153,9 @@ indFlowDate <- makeObsDates(RainDat$Date_Time[paramGR4J[[2]]])
 compareAnnualMaxima(indObsDate = indFlowDate,
                     obs = virObsFlow,
                     simRep = simFlowRep_Opt[[1]])
-
+compareAnnualMaxima(indObsDate = indFlowDate,
+                    obs = virObsFlow,
+                    simRep = simFlowRep)
 mtext("Daily annual maxima (Flow)")
 RainDatFormat <- format_TimeSeries(RainDat)
 plotFlowPercentilesV2.0(obs = virObsFlow, sim = simFlowRep, indFlowDate = indFlowDate, optimSim = simFlowRep_Opt[[1]], mod="2", percentile = c(0.05, 0.5, 0.95))
